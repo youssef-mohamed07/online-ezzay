@@ -1,0 +1,154 @@
+﻿import 'package:flutter/material.dart';
+
+import 'home_page.dart';
+import 'profile_page.dart';
+import 'shipments_page.dart';
+import 'cart_page.dart';
+import 'packages_page.dart';
+
+class ShellPage extends StatefulWidget {
+  const ShellPage({super.key});
+
+  @override
+  State<ShellPage> createState() => _ShellPageState();
+}
+
+class _ShellPageState extends State<ShellPage> {
+  int _selectedIndex = 0;
+
+  static const List<Widget> _pages = [
+    HomePage(),
+    ShipmentsPage(),
+    CartPage(), 
+    ProfilePage(),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: const Color(0xFFF8F9FA),
+      body: AnimatedSwitcher(
+        duration: const Duration(milliseconds: 280),
+        switchInCurve: Curves.easeOutCubic,
+        switchOutCurve: Curves.easeInCubic,
+        child: KeyedSubtree(
+          key: ValueKey(_selectedIndex),
+          child: _pages[_selectedIndex],
+        ),
+      ),
+      bottomNavigationBar: Container(
+        height: 70,
+        decoration: BoxDecoration(
+          color: Colors.white,
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 15,
+              offset: const Offset(0, -4),
+            ),
+          ],
+        ),
+        child: Stack(
+          clipBehavior: Clip.none,
+          children: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                _BottomItem(icon: Icons.home_rounded, label: 'الرئيسية', active: _selectedIndex == 0, onTap: () => setState(() => _selectedIndex = 0)),
+                _BottomItem(icon: Icons.inventory_2_outlined, label: 'الشحنات', active: _selectedIndex == 1, onTap: () => setState(() => _selectedIndex = 1)),
+                const SizedBox(width: 70), // Spacer for center FAB
+                _BottomItem(icon: Icons.shopping_cart_outlined, label: 'السلة', active: _selectedIndex == 2, onTap: () => setState(() => _selectedIndex = 2)),
+                _BottomItem(icon: Icons.person_outline_rounded, label: 'الملف', active: _selectedIndex == 3, onTap: () => setState(() => _selectedIndex = 3)),
+              ],
+            ),
+            Positioned(
+              top: -20,
+              left: 0,
+              right: 0,
+              child: Center(
+                child: GestureDetector(
+                  onTap: () {
+                    Navigator.of(context).push(
+                      MaterialPageRoute(builder: (_) => const PackagesPage()),
+                    );
+                  },
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Container(
+                        width: 56,
+                        height: 56,
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFE71D24),
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 4),
+                          boxShadow: [
+                            BoxShadow(
+                              color: const Color(0xFFE71D24).withValues(alpha: 0.3),
+                              blurRadius: 10,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.add, color: Colors.white, size: 28),
+                      ),
+                      const SizedBox(height: 6),
+                      const Text(
+                        'اضف شحنة',
+                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.normal, color: Color(0xFF94A3B8)),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomItem extends StatelessWidget {
+  const _BottomItem({
+    required this.icon,
+    required this.label,
+    required this.active,
+    required this.onTap,
+  });
+
+  final IconData icon;
+  final String label;
+  final bool active;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      behavior: HitTestBehavior.opaque,
+      child: SizedBox(
+        width: 60,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              icon,
+              size: 26,
+              color: active ? const Color(0xFFE71D24) : const Color(0xFF64748B),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 10,
+                fontWeight: active ? FontWeight.bold : FontWeight.normal,
+                color: active ? const Color(0xFFE71D24) : const Color(0xFF64748B),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
