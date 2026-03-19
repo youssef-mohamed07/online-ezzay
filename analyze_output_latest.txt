@@ -1,0 +1,51 @@
+Analyzing onlineezzay...                                        
+
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\about_app_page.dart:32:49 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\views\screens\address_details_page.dart:6:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\address_details_page.dart:52:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\address_details_page.dart:80:42 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\views\screens\address_page.dart:7:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\address_page.dart:88:32 - deprecated_member_use
+warning - The value of the local variable 'grayText' isn't used - lib\views\screens\auth\login_page.dart:14:11 - unused_local_variable
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\auth\login_page.dart:119:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\auth\login_page.dart:162:47 - deprecated_member_use
+warning - Unused import: 'auth_layout.dart' - lib\views\screens\auth\register_page.dart:3:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\auth\register_page.dart:123:40 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\views\screens\cart_page.dart:4:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\cart_page.dart:140:48 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\cart_page.dart:233:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\cart_page.dart:295:39 - deprecated_member_use
+   info - 'groupValue' is deprecated and shouldn't be used. Use a RadioGroup ancestor to manage group value instead. This feature was deprecated after v3.32.0-0.0.pre - lib\views\screens\cart_page.dart:360:15 - deprecated_member_use
+   info - 'onChanged' is deprecated and shouldn't be used. Use RadioGroup to handle value change instead. This feature was deprecated after v3.32.0-0.0.pre - lib\views\screens\cart_page.dart:361:15 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\views\screens\cn_address_page.dart:4:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\cn_address_page.dart:44:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\cn_address_page.dart:130:32 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\cn_address_page.dart:146:37 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\contact_us_page.dart:57:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\contact_us_page.dart:63:41 - deprecated_member_use
+   info - Parameter 'key' could be a super parameter - lib\views\screens\custom_shipment_page.dart:4:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\custom_shipment_page.dart:111:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\custom_shipment_page.dart:164:42 - deprecated_member_use
+warning - Unused import: 'profile_page.dart' - lib\views\screens\home_page.dart:5:8 - unused_import
+warning - Unused import: 'track_page.dart' - lib\views\screens\home_page.dart:7:8 - unused_import
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\notifications_page.dart:70:38 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\notifications_page.dart:73:40 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\notifications_page.dart:82:28 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\profile_page.dart:130:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\profile_page.dart:183:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\profile_page.dart:249:41 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\profile_page.dart:424:46 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\profile_page.dart:424:79 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\profile_page.dart:560:33 - deprecated_member_use
+   info - 'activeColor' is deprecated and shouldn't be used. Use activeThumbColor instead. This feature was deprecated after v3.31.0-2.0.pre - lib\views\screens\settings_page.dart:89:9 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\shipment_details_page.dart:63:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\shipment_details_page.dart:98:52 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\shipment_details_page.dart:100:71 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\shipment_details_page.dart:127:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\shipment_details_page.dart:220:33 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\shipment_details_page.dart:278:33 - deprecated_member_use
+warning - The value of the local variable 'deepRed' isn't used - lib\views\screens\splash_page.dart:64:11 - unused_local_variable
+   info - Parameter 'key' could be a super parameter - lib\views\screens\us_address_page.dart:4:9 - use_super_parameters
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\us_address_page.dart:46:42 - deprecated_member_use
+   info - 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss - lib\views\screens\us_address_page.dart:72:42 - deprecated_member_use
+
