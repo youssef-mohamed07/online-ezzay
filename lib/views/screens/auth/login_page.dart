@@ -1,11 +1,55 @@
-import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
-
+import 'package:provider/provider.dart';
+import 'package:online_ezzy/core/app_translations.dart';
+import '../../../providers/auth_provider.dart';
 import '../shell_page.dart';
 import 'forgot_password_page.dart';
 
-class LoginPage extends StatelessWidget {
+class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
+
+  @override
+  State<LoginPage> createState() => _LoginPageState();
+}
+
+class _LoginPageState extends State<LoginPage> {
+  final _usernameController = TextEditingController();
+  final _passwordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _usernameController.dispose();
+    _passwordController.dispose();
+    super.dispose();
+  }
+
+  void _handleLogin() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    final username = _usernameController.text.trim();
+    final password = _passwordController.text;
+
+    if (username.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('الرجاء إدخال البريد الإلكتروني وكلمة المرور'.tr)),
+      );
+      return;
+    }
+
+    final success = await authProvider.login(username, password);
+
+    if (!mounted) return;
+
+    if (success) {
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute<void>(builder: (_) => const ShellPage()),
+        (route) => false,
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('فشل تسجيل الدخول، تأكد من بياناتك'.tr)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -13,6 +57,8 @@ class LoginPage extends StatelessWidget {
     const bgColor = Color(0xFFF8F9FA);
     const darkText = Color(0xFF1E293B);
     const grayText = Color(0xFF94A3B8);
+
+    final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -72,11 +118,13 @@ class LoginPage extends StatelessWidget {
                   children: [
                     _buildLabel('البريد الالكتروني / رقم الهاتف'.tr),
                     _buildTextField(
+                      controller: _usernameController,
                       hint: 'أدخل البريد الالكتروني أو رقم الهاتف'.tr,
                     ),
                     SizedBox(height: 16),
                     _buildLabel('كلمة المرور'),
                     _buildTextField(
+                      controller: _passwordController,
                       hint: '••••••••',
                       obscureText: true,
                     ),
@@ -102,28 +150,28 @@ class LoginPage extends StatelessWidget {
                     ),
                     SizedBox(height: 24),
                     FilledButton(
-                      onPressed: () {
-                        Navigator.of(context).pushAndRemoveUntil(
-                          MaterialPageRoute<void>(
-                              builder: (_) => const ShellPage()),
-                          (route) => false,
-                        );
-                      },
+                      onPressed: authProvider.isLoading ? null : _handleLogin,
                       style: FilledButton.styleFrom(
                         backgroundColor: red,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),
+                        padding: const EdgeInsets.symmetric(vertical: 16),      
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
                         elevation: 4,
                         shadowColor: red.withOpacity(0.4),
                       ),
-                      child: Text(
-                        'تسجيل الدخول',
-                        style: TextStyle(
-                            fontSize: 16, fontWeight: FontWeight.bold),
-                      ),
+                      child: authProvider.isLoading 
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text(
+                              'تسجيل الدخول',
+                              style: TextStyle(
+                                  fontSize: 16, fontWeight: FontWeight.bold),
+                            ),
                     ),
                     SizedBox(height: 16),
                     OutlinedButton(
@@ -203,9 +251,11 @@ class LoginPage extends StatelessWidget {
 
   Widget _buildTextField({
     required String hint,
+    required TextEditingController controller,
     bool obscureText = false,
   }) {
     return TextFormField(
+      controller: controller,
       obscureText: obscureText,
       textAlign: TextAlign.right,
       decoration: InputDecoration(

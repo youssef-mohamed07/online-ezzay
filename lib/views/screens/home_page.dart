@@ -1,6 +1,8 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:online_ezzy/providers/auth_provider.dart';
 import 'package:online_ezzy/data/real_images.dart';
 import 'packages_page.dart';
 import 'profile_page.dart';
@@ -99,7 +101,14 @@ class _HomePageState extends State<HomePage> {
                 _SectionTitle('العناوين'),
                 GestureDetector(
                   onTap: () => _openPage(const PackagesPage()),
-                  child: Text('الباقات', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFFE71D24))),
+                  child: Text(
+                    'الباقات',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Color(0xFFE71D24),
+                    ),
+                  ),
                 ),
               ],
             ),
@@ -120,63 +129,91 @@ class _TopHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-      crossAxisAlignment: CrossAxisAlignment.center,
-      children: [
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return Consumer<AuthProvider>(
+      builder: (context, auth, _) {
+        final userName = auth.userData?['first_name'] ?? 'ضيف';
+        return Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            Row(
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('مرحبا كريم', style: TextStyle(fontSize: 20, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
-                SizedBox(width: 8),
-                Text('', style: TextStyle(fontSize: 20)),
+                Row(
+                  children: [
+                    Text(
+                      'مرحبا ',
+                      style: const TextStyle(
+                        fontSize: 20,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 2),
+                const Text(
+                  'لديك 0 شحنات نشطة',
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ],
             ),
-            SizedBox(height: 2),
-            Text('لديك 3 شحنات نشطة', style: TextStyle(fontSize: 12, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600)),
-          ],
-        ),
-        Row(
-          children: [
-            GestureDetector(
-              onTap: onTapNotification,
-              child: Stack(
-                clipBehavior: Clip.none,
-                children: [
-                  Icon(Icons.notifications_none_rounded, color: Color(0xFF1E293B), size: 28),
-                  Positioned(
-                    right: 2,
-                    top: 2,
-                    child: Container(
-                      width: 10,
-                      height: 10,
-                      decoration: BoxDecoration(
-                        color: const Color(0xFFE71D24),
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
+            Row(
+              children: [
+                GestureDetector(
+                  onTap: onTapNotification,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      Icon(
+                        Icons.notifications_none_rounded,
+                        color: Color(0xFF1E293B),
+                        size: 28,
+                      ),
+                      Positioned(
+                        right: 2,
+                        top: 2,
+                        child: Container(
+                          width: 10,
+                          height: 10,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE71D24),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+                SizedBox(width: 16),
+                Container(
+                  width: 42,
+                  height: 42,
+                  decoration: const BoxDecoration(
+                    color: Color(0xFFFFC0B6),
+                    shape: BoxShape.circle,
+                  ),
+                  child: Center(
+                    child: Text(
+                      userName.isNotEmpty ? userName[0] : 'ك',
+                      style: const TextStyle(
+                        color: Color(0xFFE71D24),
+                        fontWeight: FontWeight.bold,
+                        fontSize: 18,
                       ),
                     ),
                   ),
-                ],
-              ),
-            ),
-            SizedBox(width: 16),
-            Container(
-              width: 42,
-              height: 42,
-              decoration: const BoxDecoration(
-                color: Color(0xFFFFC0B6),
-                shape: BoxShape.circle,
-              ),
-              child: Center(
-                child: Text('ك', style: TextStyle(color: Color(0xFFE71D24), fontWeight: FontWeight.bold, fontSize: 18)),
-              ),
+                ),
+              ],
             ),
           ],
-        ),
-      ],
+        );
+      },
     );
   }
 }
@@ -248,15 +285,16 @@ class _ActionItem extends StatelessWidget {
               color: Colors.white,
               borderRadius: BorderRadius.circular(16),
               boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.04), blurRadius: 10, offset: const Offset(0, 4)),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(16),
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.cover,
-              ),
+              child: Image.asset(imagePath, fit: BoxFit.cover),
             ),
           ),
         ],
@@ -266,7 +304,12 @@ class _ActionItem extends StatelessWidget {
 }
 
 class _HeroSlider extends StatelessWidget {
-  const _HeroSlider({required this.controller, required this.images, required this.index, required this.onPageChanged});
+  const _HeroSlider({
+    required this.controller,
+    required this.images,
+    required this.index,
+    required this.onPageChanged,
+  });
 
   final PageController controller;
   final List<String> images;
@@ -287,13 +330,17 @@ class _HeroSlider extends StatelessWidget {
               itemCount: images.length,
               itemBuilder: (context, i) {
                 return Image.network(
-                  images[i], 
-                  fit: BoxFit.cover, 
+                  images[i],
+                  fit: BoxFit.cover,
                   width: double.infinity,
                   errorBuilder: (context, error, stackTrace) => Container(
                     color: Colors.grey.shade300,
                     child: Center(
-                      child: Icon(Icons.image_not_supported, color: Colors.grey, size: 40),
+                      child: Icon(
+                        Icons.image_not_supported,
+                        color: Colors.grey,
+                        size: 40,
+                      ),
                     ),
                   ),
                 );
@@ -312,7 +359,9 @@ class _HeroSlider extends StatelessWidget {
               width: active ? 16 : 6,
               height: 6,
               decoration: BoxDecoration(
-                color: active ? const Color(0xFFE71D24) : const Color(0xFFCBD5E1),
+                color: active
+                    ? const Color(0xFFE71D24)
+                    : const Color(0xFFCBD5E1),
                 borderRadius: BorderRadius.circular(3),
               ),
             );
@@ -332,7 +381,11 @@ class _SectionTitle extends StatelessWidget {
     return Text(
       title,
       textAlign: TextAlign.right,
-      style: const TextStyle(fontSize: 17, fontWeight: FontWeight.w900, color: Color(0xFF1E293B)),
+      style: const TextStyle(
+        fontSize: 17,
+        fontWeight: FontWeight.w900,
+        color: Color(0xFF1E293B),
+      ),
     );
   }
 }
@@ -348,7 +401,11 @@ class _TrackingCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -363,7 +420,14 @@ class _TrackingCard extends StatelessWidget {
               ),
               child: const Align(
                 alignment: Alignment.centerRight,
-                child: Text('أدخل رقم التتبع', style: TextStyle(color: Color(0xFF94A3B8), fontSize: 14, fontWeight: FontWeight.w600)),
+                child: Text(
+                  'أدخل رقم التتبع',
+                  style: TextStyle(
+                    color: Color(0xFF94A3B8),
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
             ),
           ),
@@ -373,11 +437,16 @@ class _TrackingCard extends StatelessWidget {
             style: ElevatedButton.styleFrom(
               backgroundColor: const Color(0xFFE71D24),
               foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
               padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 15),
               elevation: 0,
             ),
-            child: Text('تتبع'.tr, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+            child: Text(
+              'تتبع'.tr,
+              style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            ),
           ),
         ],
       ),
@@ -396,7 +465,11 @@ class _ActiveShipmentCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Column(
@@ -414,37 +487,83 @@ class _ActiveShipmentCard extends StatelessWidget {
                       color: const Color(0xFFFFF5E6),
                       borderRadius: BorderRadius.circular(14),
                     ),
-                    child: Icon(Icons.inventory_2_rounded, size: 28, color: Color(0xFFC68A5A)),
+                    child: Icon(
+                      Icons.inventory_2_rounded,
+                      size: 28,
+                      color: Color(0xFFC68A5A),
+                    ),
                   ),
                   SizedBox(width: 16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text('طرد أمازون', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w800, color: Color(0xFF1E293B))),
+                      Text(
+                        'طرد أمازون',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w800,
+                          color: Color(0xFF1E293B),
+                        ),
+                      ),
                       SizedBox(height: 2),
-                      Text('رقم التتبع #2638', style: TextStyle(fontSize: 13, fontWeight: FontWeight.w600, color: const Color(0xFF64748B).withValues(alpha: 0.8))),
+                      Text(
+                        'رقم التتبع #2638',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: const Color(0xFF64748B).withValues(alpha: 0.8),
+                        ),
+                      ),
                     ],
                   ),
                 ],
               ),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 14,
+                  vertical: 8,
+                ),
                 decoration: BoxDecoration(
                   color: const Color(0xFFFFF5E6),
                   borderRadius: BorderRadius.circular(20),
                 ),
-                child: Text('في الصندوق'.tr, style: TextStyle(color: Color(0xFFD97706), fontSize: 12, fontWeight: FontWeight.bold)),
+                child: Text(
+                  'في الصندوق'.tr,
+                  style: TextStyle(
+                    color: Color(0xFFD97706),
+                    fontSize: 12,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
               ),
             ],
           ),
           SizedBox(height: 28),
           Row(
             children: [
-              Expanded(child: _buildTimelineStep('في الصندوق'.tr, isActive: false, isCompleted: true)),
+              Expanded(
+                child: _buildTimelineStep(
+                  'في الصندوق'.tr,
+                  isActive: false,
+                  isCompleted: true,
+                ),
+              ),
               _buildTimelineLine(isCompleted: true),
-              Expanded(child: _buildTimelineStep('في الطريق'.tr, isActive: true, isCompleted: false)),
+              Expanded(
+                child: _buildTimelineStep(
+                  'في الطريق'.tr,
+                  isActive: true,
+                  isCompleted: false,
+                ),
+              ),
               _buildTimelineLine(isCompleted: false),
-              Expanded(child: _buildTimelineStep('تم التسليم'.tr, isActive: false, isCompleted: false)),
+              Expanded(
+                child: _buildTimelineStep(
+                  'تم التسليم'.tr,
+                  isActive: false,
+                  isCompleted: false,
+                ),
+              ),
             ],
           ),
           SizedBox(height: 8),
@@ -453,25 +572,48 @@ class _ActiveShipmentCard extends StatelessWidget {
     );
   }
 
-  Widget _buildTimelineStep(String label, {required bool isActive, required bool isCompleted}) {
+  Widget _buildTimelineStep(
+    String label, {
+    required bool isActive,
+    required bool isCompleted,
+  }) {
     return Column(
       children: [
         Container(
           width: 24,
           height: 24,
           decoration: BoxDecoration(
-            color: isCompleted ? const Color(0xFFE71D24) : (isActive ? const Color(0xFFE71D24) : Colors.white),
+            color: isCompleted
+                ? const Color(0xFFE71D24)
+                : (isActive ? const Color(0xFFE71D24) : Colors.white),
             shape: BoxShape.circle,
             border: Border.all(
-              color: isCompleted || isActive ? const Color(0xFFE71D24) : const Color(0xFFCBD5E1),
+              color: isCompleted || isActive
+                  ? const Color(0xFFE71D24)
+                  : const Color(0xFFCBD5E1),
               width: 2,
             ),
           ),
           child: Center(
-            child: isCompleted 
+            child: isCompleted
                 ? Icon(Icons.check, color: Colors.white, size: 14)
-                : (isActive ? Container(width: 8, height: 8, decoration: const BoxDecoration(color: Colors.white, shape: BoxShape.circle)) 
-                            : Container(width: 6, height: 6, decoration: const BoxDecoration(color: Color(0xFFCBD5E1), shape: BoxShape.circle))),
+                : (isActive
+                      ? Container(
+                          width: 8,
+                          height: 8,
+                          decoration: const BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                          ),
+                        )
+                      : Container(
+                          width: 6,
+                          height: 6,
+                          decoration: const BoxDecoration(
+                            color: Color(0xFFCBD5E1),
+                            shape: BoxShape.circle,
+                          ),
+                        )),
           ),
         ),
         SizedBox(height: 10),
@@ -479,8 +621,12 @@ class _ActiveShipmentCard extends StatelessWidget {
           label,
           style: TextStyle(
             fontSize: 11,
-            fontWeight: isActive || isCompleted ? FontWeight.bold : FontWeight.w600,
-            color: isActive || isCompleted ? const Color(0xFF1E293B) : const Color(0xFF94A3B8),
+            fontWeight: isActive || isCompleted
+                ? FontWeight.bold
+                : FontWeight.w600,
+            color: isActive || isCompleted
+                ? const Color(0xFF1E293B)
+                : const Color(0xFF94A3B8),
           ),
         ),
       ],
@@ -511,7 +657,11 @@ class _WarehouseOrderCard extends StatelessWidget {
         color: Colors.white,
         borderRadius: BorderRadius.circular(16),
         boxShadow: [
-          BoxShadow(color: Colors.black.withValues(alpha: 0.03), blurRadius: 10, offset: const Offset(0, 4)),
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
         ],
       ),
       child: Row(
@@ -520,18 +670,33 @@ class _WarehouseOrderCard extends StatelessWidget {
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('اطلب إرسال طردك', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w900, color: Color(0xFF1E293B))),
+              Text(
+                'اطلب إرسال طردك',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w900,
+                  color: Color(0xFF1E293B),
+                ),
+              ),
               SizedBox(height: 12),
               ElevatedButton(
                 onPressed: onTap ?? () {},
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE71D24),
                   foregroundColor: Colors.white,
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 24,
+                    vertical: 12,
+                  ),
                   elevation: 0,
                 ),
-                child: Text('اطلب توصيل الآن', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13)),
+                child: Text(
+                  'اطلب توصيل الآن',
+                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                ),
               ),
             ],
           ),
@@ -541,7 +706,11 @@ class _WarehouseOrderCard extends StatelessWidget {
               color: const Color(0xFFFFF5E6),
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(Icons.inventory_2_rounded, size: 36, color: Color(0xFFC68A5A)),
+            child: Icon(
+              Icons.inventory_2_rounded,
+              size: 36,
+              color: Color(0xFFC68A5A),
+            ),
           ),
         ],
       ),
@@ -558,7 +727,11 @@ class _AddressCardsRow extends StatelessWidget {
         scrollDirection: Axis.horizontal,
         itemCount: 3,
         itemBuilder: (context, index) {
-          final titles = ['العنوان الامريكي', 'العنوان صيني', 'العنوان الايطالي'];
+          final titles = [
+            'العنوان الامريكي',
+            'العنوان صيني',
+            'العنوان الايطالي',
+          ];
           return Container(
             width: 155,
             margin: const EdgeInsets.only(left: 14),
@@ -568,7 +741,11 @@ class _AddressCardsRow extends StatelessWidget {
               borderRadius: BorderRadius.circular(18),
               border: Border.all(color: const Color(0xFFF1F5F9)),
               boxShadow: [
-                BoxShadow(color: Colors.black.withValues(alpha: 0.02), blurRadius: 8, offset: const Offset(0, 4)),
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.02),
+                  blurRadius: 8,
+                  offset: const Offset(0, 4),
+                ),
               ],
             ),
             child: Column(
@@ -578,15 +755,34 @@ class _AddressCardsRow extends StatelessWidget {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.start,
                   children: [
-                    Icon(Icons.place_rounded, color: Color(0xFFE71D24), size: 18),
+                    Icon(
+                      Icons.place_rounded,
+                      color: Color(0xFFE71D24),
+                      size: 18,
+                    ),
                     SizedBox(width: 6),
-                    Expanded(child: Text(titles[index], style: const TextStyle(fontWeight: FontWeight.w800, fontSize: 13, color: Color(0xFF1E293B)), overflow: TextOverflow.ellipsis)),
+                    Expanded(
+                      child: Text(
+                        titles[index],
+                        style: const TextStyle(
+                          fontWeight: FontWeight.w800,
+                          fontSize: 13,
+                          color: Color(0xFF1E293B),
+                        ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
                   ],
                 ),
                 Text(
                   'تعرف على باقات العنوان\n${titles[index].replaceAll("العنوان ", "")}',
                   textAlign: TextAlign.start,
-                  style: const TextStyle(fontSize: 11, color: Color(0xFF94A3B8), fontWeight: FontWeight.w600, height: 1.4),
+                  style: const TextStyle(
+                    fontSize: 11,
+                    color: Color(0xFF94A3B8),
+                    fontWeight: FontWeight.w600,
+                    height: 1.4,
+                  ),
                 ),
                 SizedBox(
                   width: double.infinity,
@@ -595,11 +791,19 @@ class _AddressCardsRow extends StatelessWidget {
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE71D24),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(10),
+                      ),
                       padding: const EdgeInsets.symmetric(vertical: 10),
                       elevation: 0,
                     ),
-                    child: Text('اطلب الآن', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12)),
+                    child: Text(
+                      'اطلب الآن',
+                      style: TextStyle(
+                        fontWeight: FontWeight.bold,
+                        fontSize: 12,
+                      ),
+                    ),
                   ),
                 ),
               ],

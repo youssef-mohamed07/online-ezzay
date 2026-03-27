@@ -1,8 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:online_ezzy/providers/product_provider.dart';
+import 'package:online_ezzy/providers/cart_provider.dart';
 import 'custom_shipment_page.dart';
 
-class PackagesPage extends StatelessWidget {
+class PackagesPage extends StatefulWidget {
   const PackagesPage({super.key});
+
+  @override
+  State<PackagesPage> createState() => _PackagesPageState();
+}
+
+class _PackagesPageState extends State<PackagesPage> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProductProvider>(context, listen: false).loadProducts();
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -24,68 +40,114 @@ class PackagesPage extends StatelessWidget {
             ),
           ),
         ),
-        body: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const Text(
-                'اختر الباقة المناسبة لك',
-                style: TextStyle(
-                  fontSize: 22,
-                  fontWeight: FontWeight.w900,
-                  color: Color(0xFF1E293B),
-                ),
-              ),
-              const SizedBox(height: 6),
-              const Text(
-                'اختر الباقة المناسبة لتوصيل طرودك',
-                style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
-              ),
-              const SizedBox(height: 32),
-              _buildPackageCard(
-                imageUrl: 'lib/assets/images/home/اطلب توصيل.png',
-                title: 'باقة 3 طرود',
-                subtitle: 'مثالية للشحنات الصغيرة والبسيطة',
-                features: [
-                  'مرونة كاملة في عدد الطرود',
-                  'تتبع الشحنة لحظة بلحظة',
-                  'دعم فني مخصص على مدار الساعة',
-                ],
-              ),
-              const SizedBox(height: 20),
-              _buildPackageCard(
-                imageUrl: 'lib/assets/images/home/تتبع شحنتك.png',
-                title: 'باقة من 4 إلى 24 طرد',
-                subtitle: 'أفضل خيار للشحنات المتوسطة.',
-                features: [
-                  'تكلفة أقل لكل طرد',
-                  'تتبع كامل للشحنات',
-                  'إدارة الشحنات بسهولة',
-                ],
-              ),
-              const SizedBox(height: 20),
-              _buildPackageCard(
-                imageUrl: 'lib/assets/images/home/العناوين.png',
-                title: 'باقة مخصصة',
-                subtitle: 'تحكم كامل في عدد الطرود والتكلفة.',
-                features: [
-                  'تحديد عدد الطرود بحرية',
-                  'حساب التكلفة تلقائيا',
-                  'إحصائيات الشحنة',
-                ],
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const CustomShipmentPage(),
+        body: Consumer<ProductProvider>(
+          builder: (context, productProvider, child) {
+            if (productProvider.isLoading) {
+              return const Center(
+                child: CircularProgressIndicator(color: Color(0xFFE71D24)),
+              );
+            }
+
+            final items = productProvider.products;
+            final categories = productProvider.categories;
+
+            return SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const Text(
+                    'اختر الباقة المناسبة لك',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.w900,
+                      color: Color(0xFF1E293B),
                     ),
-                  );
-                },
+                  ),
+                  const SizedBox(height: 6),
+                  const Text(
+                    'اختر الباقة المناسبة لتوصيل طرودك',
+                    style: TextStyle(fontSize: 14, color: Color(0xFF64748B)),
+                  ),
+                  const SizedBox(height: 32),
+                  if (items.isEmpty && !productProvider.isLoading)
+                    const Text(
+                      'لا يوجد باقات تأكد من اتصال الانترنت أو إعدادات المتجر',
+                      style: TextStyle(color: Colors.red),
+                    ),
+
+                  ...items.map((prod) {
+                    final name = prod['name']?.toString() ?? 'بدون اسم';
+                    final price = prod['price']?.toString() ?? '0';
+
+                    return Padding(
+                      padding: const EdgeInsets.only(bottom: 20),
+                      child: _buildPackageCard(
+                        imageUrl: 'lib/assets/images/home/اطلب توصيل.png',
+                        title: name,
+                        subtitle: '$price جنيه',
+                        features: ['مرونة كاملة في عدد الطرود'],
+                        onPressed: () async {
+                          final cartProvider = Provider.of<CartProvider>(
+                            context,
+                            listen: false,
+                          );
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('جاري الإضافة للسلة...'),
+                            ),
+                          );
+                          final success = await cartProvider.addToCart(
+                            int.parse(prod['id'].toString()),
+                            1,
+                          );
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('تم إضافة الباقة للسلة بنجاح!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('فشل إضافة الباقة للسلة'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                      ),
+                    );
+                  }),
+
+                  const SizedBox(height: 10),
+                  // Fallback
+                  _buildPackageCard(
+                    imageUrl: 'lib/assets/images/home/العناوين.png',
+                    title: 'باقة مخصصة (إضافية)',
+                    subtitle: 'تحكم كامل في عدد الطرود والتكلفة.',
+                    features: [
+                      'تحديد عدد الطرود بحرية',
+                      'حساب التكلفة تلقائيا',
+                      'إحصائيات الشحنة',
+                    ],
+                    onPressed: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const CustomShipmentPage(),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 40),
+                ],
               ),
-              const SizedBox(height: 40),
-            ],
-          ),
+            );
+          },
         ),
       ),
     );
@@ -114,7 +176,6 @@ class PackagesPage extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          // Image Header
           Container(
             height: 180,
             padding: const EdgeInsets.all(24),
@@ -122,9 +183,13 @@ class PackagesPage extends StatelessWidget {
               color: Color(0xFFF8FAFC),
               borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
             ),
-            child: Image.asset(imageUrl, fit: BoxFit.contain),
+            child: Image.asset(
+              imageUrl,
+              fit: BoxFit.contain,
+              errorBuilder: (_, __, ___) =>
+                  const Icon(Icons.inventory, size: 80, color: Colors.grey),
+            ),
           ),
-
           Padding(
             padding: const EdgeInsets.all(24),
             child: Column(
@@ -146,9 +211,7 @@ class PackagesPage extends StatelessWidget {
                   ),
                   textAlign: TextAlign.center,
                 ),
-                const SizedBox(height: 24),
-
-                // Features list
+                if (features.isNotEmpty) const SizedBox(height: 24),
                 ...features.map(
                   (feature) => Padding(
                     padding: const EdgeInsets.only(bottom: 12),
@@ -174,9 +237,7 @@ class PackagesPage extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: 24),
-
                 SizedBox(
                   width: double.infinity,
                   height: 52,

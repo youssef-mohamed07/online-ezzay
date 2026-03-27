@@ -1,16 +1,74 @@
-import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:online_ezzy/core/app_translations.dart';
+import '../../../providers/auth_provider.dart';
 
 import 'auth_layout.dart';
 import 'login_page.dart';
 
-class RegisterPage extends StatelessWidget {
+class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
+
+  @override
+  State<RegisterPage> createState() => _RegisterPageState();
+}
+
+class _RegisterPageState extends State<RegisterPage> {
+  final _nameController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _phoneController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    _emailController.dispose();
+    _phoneController.dispose();
+    _passwordController.dispose();
+    _confirmPasswordController.dispose();
+    super.dispose();
+  }
+
+  void _handleRegister() async {
+    final authProvider = Provider.of<AuthProvider>(context, listen: false);
+    
+    // Using email as username for now as the API takes username, email, password
+    final name = _nameController.text.trim();
+    final email = _emailController.text.trim();
+    final password = _passwordController.text;
+
+    if (name.isEmpty || email.isEmpty || password.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('الرجاء تعبئة الحقول الأساسية'.tr)),
+      );
+      return;
+    }
+
+    final success = await authProvider.register(name, email, password);
+
+    if (!mounted) return;
+
+    if (success) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('تم إنشاء الحساب بنجاح'.tr)),
+      );
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('حدث خطأ أثناء الإنشاء. حاول مجدداً'.tr)),
+      );
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
     const red = Color(0xFFE71D24);
     const bgColor = Color(0xFFF8F9FA);
+    
+    final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: bgColor,
@@ -65,16 +123,21 @@ class RegisterPage extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   _buildLabel('الاسم الكامل'),
-                  _buildTextField(hint: 'الاسم الكامل'),
+                  _buildTextField(
+                    controller: _nameController,
+                    hint: 'الاسم الكامل',
+                  ),
                   SizedBox(height: 16),
                   _buildLabel('البريد الإلكتروني'),
                   _buildTextField(
+                    controller: _emailController,
                     hint: 'example@email.com',
                     keyboardType: TextInputType.emailAddress,
                   ),
                   SizedBox(height: 16),
                   _buildLabel('رقم الهاتف'.tr),
                   _buildTextField(
+                    controller: _phoneController,
                     hint: '5xxxxxxxx',
                     keyboardType: TextInputType.phone,
                   ),
@@ -93,9 +156,9 @@ class RegisterPage extends StatelessWidget {
                   SizedBox(height: 16),
                   _buildLabel('إنشاء كلمة مرور'.tr),
                   _buildTextField(
-                    hint: 'اختر المدينة'.tr, // To match mockup "اختار المدينة".tr text exactly, wait they misspelled it in the design? Yes.
+                    controller: _passwordController,
+                    hint: '••••••••',
                     obscureText: true,
-                    suffixIcon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black45),
                   ),
                   SizedBox(height: 8),
                   Text(
@@ -105,14 +168,7 @@ class RegisterPage extends StatelessWidget {
                   ),
                   SizedBox(height: 24),
                   FilledButton(
-                    onPressed: () {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('تم إنشاء الحساب بنجاح'.tr)),
-                      );
-                      Navigator.of(context).pushReplacement(
-                        MaterialPageRoute<void>(builder: (_) => const LoginPage()),
-                      );
-                    },
+                    onPressed: authProvider.isLoading ? null : _handleRegister,
                     style: FilledButton.styleFrom(
                       backgroundColor: red,
                       foregroundColor: Colors.white,
@@ -123,7 +179,13 @@ class RegisterPage extends StatelessWidget {
                       elevation: 4,
                       shadowColor: red.withOpacity(0.4),
                     ),
-                    child: Text(
+                    child: authProvider.isLoading
+                          ? const SizedBox(
+                              height: 24,
+                              width: 24,
+                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text(
                       'إنشاء الحساب و الانتقال للدفع'.tr,
                       style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
                     ),
@@ -187,11 +249,13 @@ class RegisterPage extends StatelessWidget {
 
   Widget _buildTextField({
     required String hint,
+    TextEditingController? controller,
     bool obscureText = false,
     TextInputType? keyboardType,
     Widget? suffixIcon,
   }) {
     return TextFormField(
+      controller: controller,
       obscureText: obscureText,
       keyboardType: keyboardType,
       textAlign: TextAlign.right, // Center or right depending on requirements, right aligns with mockup
