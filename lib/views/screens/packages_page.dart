@@ -79,70 +79,40 @@ class _PackagesPageState extends State<PackagesPage> {
                   ...items.map((prod) {
                     final name = prod['name']?.toString() ?? 'بدون اسم';
                     final price = prod['price']?.toString() ?? '0';
+                    final productId = int.tryParse(prod['id'].toString()) ?? 0;
+                    
+                    // Parse categories to optionally change image
+                    bool isAddress = false;
+                    final cats = prod['categories'] as List?;
+                    if (cats != null) {
+                      isAddress = cats.any((c) => c['name'].toString().contains('عناوين') || c['name'].toString().contains('العنوان'));
+                    }
+
+                    // Extract features from short_description or fallbacks
+                    List<String> features = [];
+                    final desc = prod['short_description']?.toString() ?? '';
+                    if (desc.isNotEmpty) {
+                        // Very simple stripped HTML
+                        final stripped = desc.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+                        if (stripped.isNotEmpty) {
+                          features = stripped.split('\n').where((s) => s.trim().isNotEmpty).toList();
+                        }
+                    }
+                    if (features.isEmpty) {
+                      features = isAddress ? ['عنوان دولي مخصص لك'] : ['مرونة كاملة في عدد الطرود'];
+                    }
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 20),
                       child: _buildPackageCard(
-                        imageUrl: 'lib/assets/images/home/اطلب توصيل.png',
+                        productId: productId,
+                        imageUrl: isAddress ? 'lib/assets/images/home/العناوين.png' : 'lib/assets/images/home/اطلب توصيل.png',
                         title: name,
                         subtitle: '$price جنيه',
-                        features: ['مرونة كاملة في عدد الطرود'],
-                        onPressed: () async {
-                          final cartProvider = Provider.of<CartProvider>(
-                            context,
-                            listen: false,
-                          );
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('جاري الإضافة للسلة...'),
-                            ),
-                          );
-                          final success = await cartProvider.addToCart(
-                            int.parse(prod['id'].toString()),
-                            1,
-                          );
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                          if (success) {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('تم إضافة الباقة للسلة بنجاح!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('فشل إضافة الباقة للسلة'),
-                                backgroundColor: Colors.red,
-                              ),
-                            );
-                          }
-                        },
+                        features: features,
                       ),
                     );
                   }),
-
-                  const SizedBox(height: 10),
-                  // Fallback
-                  _buildPackageCard(
-                    imageUrl: 'lib/assets/images/home/العناوين.png',
-                    title: 'باقة مخصصة (إضافية)',
-                    subtitle: 'تحكم كامل في عدد الطرود والتكلفة.',
-                    features: [
-                      'تحديد عدد الطرود بحرية',
-                      'حساب التكلفة تلقائيا',
-                      'إحصائيات الشحنة',
-                    ],
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => const CustomShipmentPage(),
-                        ),
-                      );
-                    },
-                  ),
                   const SizedBox(height: 40),
                 ],
               ),
@@ -154,11 +124,11 @@ class _PackagesPageState extends State<PackagesPage> {
   }
 
   Widget _buildPackageCard({
+    required int productId,
     required String imageUrl,
     required String title,
     required String subtitle,
     required List<String> features,
-    VoidCallback? onPressed,
   }) {
     return Container(
       decoration: BoxDecoration(
@@ -238,27 +208,98 @@ class _PackagesPageState extends State<PackagesPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                SizedBox(
-                  width: double.infinity,
-                  height: 52,
-                  child: ElevatedButton(
-                    onPressed: onPressed ?? () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE71D24),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
+                Consumer<CartProvider>(
+                  builder: (context, cartProvider, child) {
+                    final cartItem = cartProvider.cartItems.firstWhere(
+                        (item) => item['id'].toString() == productId.toString(),
+                        orElse: () => null);
+
+                    final isInCart = cartItem != null;
+                    final quantity = isInCart ? (cartItem['quantity'] as int? ?? 1) : 0;
+                    final itemKey = isInCart ? cartItem['key'].toString() : null;
+
+                    if (isInCart) {
+                      return Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          IconButton(
+                            onPressed: () async {
+                              if (cartProvider.isLoading) return;
+                              final newQty = quantity + 1;
+                              await cartProvider.updateCartItemQuantity(itemKey!, newQty);
+                            },
+                            icon: const Icon(Icons.add_circle, color: Color(0xFFE71D24), size: 30),
+                          ),
+                          Text(
+                            '$quantity',
+                            style: const TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          IconButton(
+                            onPressed: () async {
+                              if (cartProvider.isLoading) return;
+                              final newQty = quantity - 1;
+                              if (newQty < 1) {
+                                await cartProvider.removeCartItem(itemKey!);
+                              } else {
+                                await cartProvider.updateCartItemQuantity(itemKey!, newQty);
+                              }
+                            },
+                            icon: const Icon(Icons.remove_circle, color: Colors.grey, size: 30),
+                          ),
+                        ],
+                      );
+                    }
+
+                    return SizedBox(
+                      width: double.infinity,
+                      height: 52,
+                      child: ElevatedButton(
+                        onPressed: cartProvider.isLoading ? null : () async {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(content: Text('جاري الإضافة للسلة...')),
+                          );
+                          final success = await cartProvider.addToCart(productId, 1);
+                          if (!context.mounted) return;
+                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                          if (success) {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('تم إضافة الباقة للسلة بنجاح!'),
+                                backgroundColor: Colors.green,
+                              ),
+                            );
+                          } else {
+                            ScaffoldMessenger.of(context).showSnackBar(
+                              const SnackBar(
+                                content: Text('فشل إضافة الباقة للسلة'),
+                                backgroundColor: Colors.red,
+                              ),
+                            );
+                          }
+                        },
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFFE71D24),
+                          foregroundColor: Colors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        child: cartProvider.isLoading
+                            ? const CircularProgressIndicator(color: Colors.white)
+                            : const Text(
+                                'احصل علي الباقة',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                       ),
-                    ),
-                    child: const Text(
-                      'احصل علي الباقة',
-                      style: TextStyle(
-                        fontSize: 15,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                  ),
+                    );
+                  }
                 ),
               ],
             ),

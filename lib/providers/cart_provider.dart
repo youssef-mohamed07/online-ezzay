@@ -162,4 +162,44 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
     return null;
   }
+
+  Future<Map<String, dynamic>?> confirmPaymentIntent(String paymentIntentId, Map<String, String> paymentMethodData) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      final response = await ApiService.confirmPaymentIntent(paymentIntentId, paymentMethodData);
+      _isLoading = false;
+      notifyListeners();
+      return response;
+    } catch (e) {
+      print('Confirm payment intent error: $e');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+    return null;
+  }
+
+  Future<List<dynamic>?> getCartItems() async {
+    try {
+      if (_cartToken == null) await _loadCartToken();
+      final response = await ApiService.getCartItems(_cartToken!);
+      return response;
+    } catch (e) {
+      print('Get cart items error: $e');
+      return null;
+    }
+  }
+
+  Future<Map<String, dynamic>?> getSingleCartItem(String itemKey) async {
+    try {
+      if (_cartToken == null) await _loadCartToken();
+      final response = await ApiService.getSingleCartItem(_cartToken!, itemKey);
+      return response;
+    } catch (e) {
+      print('Get single cart item error: $e');
+      return null;
+    }
+  }
 }

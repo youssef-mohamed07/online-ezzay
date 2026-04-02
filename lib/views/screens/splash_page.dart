@@ -4,7 +4,12 @@ import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
 
+import 'package:online_ezzy/providers/auth_provider.dart';
+import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+
 import 'onboarding_page.dart';
+import 'shell_page.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -34,14 +39,20 @@ class _SplashPageState extends State<SplashPage>
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
 
-    _navigationTimer = Timer(const Duration(milliseconds: 2300), () {
+    _navigationTimer = Timer(const Duration(milliseconds: 2300), () async {
       if (!mounted) {
         return;
       }
+      
+      final prefs = await SharedPreferences.getInstance();
+      final hasToken = prefs.getString('auth_token') != null;
+
+      if (!mounted) return;
+
       Navigator.of(context).pushReplacement(
         PageRouteBuilder<void>(
           pageBuilder: (context, animation, secondaryAnimation) =>
-              const OnboardingPage(),
+              hasToken ? const ShellPage() : const OnboardingPage(),
           transitionDuration: const Duration(milliseconds: 450),
           transitionsBuilder:
               (context, animation, secondaryAnimation, child) {

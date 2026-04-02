@@ -1,0 +1,130 @@
+﻿<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>متطلبات ربط الواجهة الخلفية (APIs) بالكامل - تطبيق Online Ezzy</title>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; color: #333; line-height: 1.6; background: #fff; max-width: 900px; margin: auto; }
+        h1 { color: #E71D24; text-align: center; font-size: 28px; border-bottom: 2px solid #eee; padding-bottom: 10px; margin-bottom: 40px; }
+        h2 { color: #1E293B; font-size: 22px; margin-top: 35px; border-right: 4px solid #E71D24; padding-right: 15px; }
+        .section { background: #f8f9fa; padding: 25px; border-radius: 12px; margin-bottom: 25px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        ul { list-style-type: none; padding: 0; margin-top: 15px; }
+        li { margin-bottom: 15px; padding-right: 20px; position: relative; }
+        li:before { content: ''; color: #E71D24; font-weight: bold; position: absolute; right: 0; font-size: 18px; }
+        .endpoint { display: inline-block; direction: ltr; background: #e2e8f0; padding: 5px 10px; border-radius: 6px; font-family: 'Courier New', Courier, monospace; font-size: 14px; color: #0f172a; margin-right: 15px; border: 1px solid #cbd5e1; }
+        .method { display: inline-block; direction: ltr; background: #3b82f6; color: white; padding: 4px 8px; border-radius: 4px; font-size: 13px; font-weight: bold; }
+        .method.get { background: #10b981; }
+        .method.post { background: #3b82f6; }
+        .method.put { background: #f59e0b; }
+        p { color: #475569; }
+        .note { background: #fff3cd; padding: 10px; border-right: 4px solid #ffc107; border-radius: 4px; margin-top: 20px; font-size: 14px; }
+    </style>
+</head>
+<body>
+
+    <h1> المستند الشامل لمتطلبات الواجهة الخلفية (APIs) المتبقية</h1>
+    <p style="text-align: center; font-size: 16px;">هذا الملف يحتوي على <b>كافة البيانات الثابتة (Dummy Data)</b> المتبقية في التطبيق بأكمله والتي تحتاج إلى مسارات حية من لوحة تحكم WordPress / WooCommerce.</p>
+    
+    <div class="section">
+        <h2> 1. نظام الشحنات الخاصة بالعميل (Shipments System)</h2>
+        <p>موجودة في صفحة (Shipments) وتفاصيل الشحنة.</p>
+        <ul>
+            <li>
+                <strong>قائمة شحنات المستخدم الحالية والسابقة:</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/ezzy/v1/shipments</span><br>
+                <p>يجب أن تعيد المصفوفة: <code>tracking_number</code> <code>status</code> (في المستودع في الطريق تم التسليم) <code>date</code>.</p>
+            </li>
+            <li>
+                <strong>تفاصيل شحنة معينة بالكامل (Shipment Details):</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/ezzy/v1/shipments/{id}</span><br>
+                <p>يجب أن تعيد: مسار التتبع (الخط الزمني بتواريخه) أسماء وصور المنتجات داخل الطرد الوزن التكلفة الإجمالية وشركة الشحن.</p>
+            </li>
+            <li>
+                <strong>إنشاء طلب شحنة مخصصة (Custom Shipment Request):</strong><br>
+                <span class="method post">POST</span> <span class="endpoint">/wp-json/ezzy/v1/shipments/request</span><br>
+                <p>يستقبل (الكمية المقاس الوزن الوصف) ليعيد تسعيرة للعميل أو يفتح طلب شحن خاص.</p>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2> 2. الصفحة الرئيسية وعدادات لوحة التحكم (Home Dashboard)</h2>
+        <p>الإحصائيات واللافتات الإعلانية في شاشة Home.</p>
+        <ul>
+            <li>
+                <strong>عدادات الشحنات (Dashboard Stats):</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/ezzy/v1/dashboard</span><br>
+                <p>يعيد رقمين: <code>active_shipments_count</code> (الشحنات النشطة التي لم تصل بعد) و <code>warehouse_packages_count</code> (الطرود المخزنة حاليا في المستودع ولم تشحن).</p>
+            </li>
+            <li>
+                <strong>البنرات الإعلانية المتحركة (Hero Sliders):</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/ezzy/v1/sliders</span><br>
+                <p>لجلب روابط صور البنرات الإعلانية المتحركة بروابط حية بدلا من الصور المخزنة في التطبيق.</p>
+            </li>
+            <li>
+                <strong>التتبع السريع برقم بوليصة (Quick Tracking):</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/ezzy/v1/track?number={id}</span><br>
+                <p>مخصص لمربع البحث في الصفحة الرئيسية لمعرفة حالة الطرد بسرعة.</p>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2> 3. الإشعارات للمستخدمين (Notifications System)</h2>
+        <p>موجودة في صفحة Notifications المفتوحة عبر أيقونة الجرس.</p>
+        <ul>
+            <li>
+                <strong>سجل الإشعارات والتنبيهات:</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/ezzy/v1/notifications</span><br>
+                <p>يعيد قائمة بالرسائل مثل (تم تأكيد دفعتك تم تغيير حالة شحنتك شحنتك وصلت إلى المستودع الصيني) مع تواريخ القراءة.</p>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2> 4. إعدادات الحساب والعناوين (Account & Global Addresses)</h2>
+        <p>التفاصيل الدقيقة للشحنات ولإعدادات الحساب في صفحة Profile.</p>
+        <ul>
+            <li>
+                <strong>تغيير كلمة المرور (Change Password):</strong><br>
+                <span class="method post">POST</span> <span class="endpoint">/wp-json/ezzy/v1/change_password</span><br>
+                <p>لتغيير الباسورد من داخل التطبيق للعميل المسجل يتطلب <code>old_password</code> و <code>new_password</code>.</p>
+            </li>
+            <li>
+                <strong>عناوين المستودعات الدولية (Warehouse Addresses):</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/ezzy/v1/warehouse-addresses</span><br>
+                <p>في حالة أن كل مستخدم يحصل على صندوق بريد (PO Box) مختلف في المستودع الصيني/الأمريكي يجب أن يجلب هذا الـ API العنوان الكامل مع رقم صندوق العميل واسمه بالإنجليزية.</p>
+            </li>
+        </ul>
+    </div>
+
+    <div class="section">
+        <h2> 5. الصفحات الثابتة والدعم (Static Pages & Support)</h2>
+        <p>النصوص المعروضة حاليا مكتوبة داخل الكود (Hardcoded).</p>
+        <ul>
+            <li>
+                <strong>صفحات اللوائح والشروط (Pages Content):</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/wp/v2/pages?slug=privacy-policy</span><br>
+                <p>يجب ربط صفحات (سياسة الخصوصية الشروط والأحكام من نحن) بصفحات الووردبريس (Pages) ليسهل تعديلها مستقبلا بدون تحديث التطبيق.</p>
+            </li>
+            <li>
+                <strong>بيانات التواصل (Contact Us):</strong><br>
+                <span class="method get">GET</span> <span class="endpoint">/wp-json/ezzy/v1/settings</span><br>
+                <p>لجلب (رقم واتساب البريد الإلكتروني للدعم مواعيد العمل الرسمية) من إعدادات موقعكم.</p>
+            </li>
+            <li>
+                <strong>إرسال رسالة دعم من التطبيق (Submit Contact Ticket):</strong><br>
+                <span class="method post">POST</span> <span class="endpoint">/wp-json/ezzy/v1/contact</span><br>
+                <p>لإرسال رسائل الشكاوى من العملاء مباشرة للإدارة.</p>
+            </li>
+        </ul>
+    </div>
+    
+    <div class="note">
+        <strong>ملحوظة هامة:</strong><br>
+        تم توصيل المتاجر السلة (Cart) الدفع المسبق عبر كروت الفيزا (Stripe) تسجيل الدخول تسجيل الخروج وتعديل بيانات المستخدم بنسبة 100% بنجاح. 
+        فقط المدرج أعلاه هو ما يحتاج إلى مبرمج الباك إند لإرساله.
+    </div>
+
+</body>
+</html>

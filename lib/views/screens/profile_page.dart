@@ -5,6 +5,8 @@ import 'package:online_ezzy/providers/auth_provider.dart';
 import 'edit_profile_page.dart';
 import 'settings_page.dart';
 import 'po_box_page.dart';
+import 'auth/login_page.dart';
+import 'shell_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -124,16 +126,68 @@ class _ProfilePageState extends State<ProfilePage>
         _buildAccountMenuCard(),
         SizedBox(height: 16),
         Center(
-          child: TextButton(
-            onPressed: () {},
-            child: Text(
-              'تسجيل الخروج',
-              style: TextStyle(
-                color: Colors.red,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
+          child: Consumer<AuthProvider>(
+            builder: (context, auth, _) {
+              if (auth.isAuthenticated) {
+                return TextButton(
+                  onPressed: () async {
+                    // Show confirmation dialog before logout
+                    final confirm = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: const Text('تسجيل الخروج', style: TextStyle(fontWeight: FontWeight.bold)),
+                        content: const Text('هل أنت متأكد أنك تريد تسجيل الخروج؟'),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: const Text('إلغاء', style: TextStyle(color: Colors.grey)),
+                          ),
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('موافق', style: TextStyle(color: Colors.red, fontWeight: FontWeight.bold)),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (confirm == true) {
+                      await auth.logout();
+                      if (!context.mounted) return;
+                      // Navigate to logic page or shell page
+                      // Since they can be guest, maybe navigate to shell or login.
+                      Navigator.of(context).pushAndRemoveUntil(
+                          MaterialPageRoute(builder: (_) => const ShellPage()),
+                          (route) => false);
+                    }
+                  },
+                  child: const Text(
+                    'تسجيل الخروج',
+                    style: TextStyle(
+                      color: Colors.red,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              } else {
+                return TextButton(
+                  onPressed: () {
+                    // if guest is browsing and wants to login
+                    Navigator.of(context).pushAndRemoveUntil(
+                        MaterialPageRoute(builder: (_) => const LoginPage()),
+                        (route) => false);
+                  },
+                  child: const Text(
+                    'تسجيل الدخول',
+                    style: TextStyle(
+                      color: Colors.blue,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                );
+              }
+            }
           ),
         ),
         SizedBox(height: 32),
@@ -226,8 +280,15 @@ class _ProfilePageState extends State<ProfilePage>
       child: Consumer<AuthProvider>(
         builder: (context, auth, _) {
           final user = auth.userData;
-          final name = user != null ? ' ' : 'ضيف';
-          final email = user?['email'] ?? 'غير متوفر';
+          
+          final String name = user != null
+              ? (user['user_display_name'] ?? user['display_name'] ?? user['username'] ?? 'مستخدم')
+              : 'ضيف';
+              
+          final String email = user != null
+              ? (user['user_email'] ?? user['email'] ?? 'غير متوفر')
+              : 'غير متوفر';
+              
           return Column(
             children: [
               Row(

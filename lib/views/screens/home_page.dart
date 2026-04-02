@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:online_ezzy/providers/auth_provider.dart';
+import 'package:online_ezzy/providers/product_provider.dart';
+import 'package:online_ezzy/providers/cart_provider.dart';
 import 'package:online_ezzy/data/real_images.dart';
 import 'packages_page.dart';
 import 'profile_page.dart';
@@ -718,99 +720,201 @@ class _WarehouseOrderCard extends StatelessWidget {
   }
 }
 
-class _AddressCardsRow extends StatelessWidget {
+class _AddressCardsRow extends StatefulWidget {
+  @override
+  State<_AddressCardsRow> createState() => _AddressCardsRowState();
+}
+
+class _AddressCardsRowState extends State<_AddressCardsRow> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      Provider.of<ProductProvider>(context, listen: false).loadProducts();
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 154,
-      child: ListView.builder(
-        scrollDirection: Axis.horizontal,
-        itemCount: 3,
-        itemBuilder: (context, index) {
-          final titles = [
-            'العنوان الامريكي',
-            'العنوان صيني',
-            'العنوان الايطالي',
-          ];
-          return Container(
-            width: 155,
-            margin: const EdgeInsets.only(left: 14),
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(18),
-              border: Border.all(color: const Color(0xFFF1F5F9)),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.02),
-                  blurRadius: 8,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+    return Consumer<ProductProvider>(
+      builder: (context, productProvider, child) {
+        if (productProvider.isLoading) {
+          return const SizedBox(
+            height: 154,
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFFE71D24)),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.place_rounded,
-                      color: Color(0xFFE71D24),
-                      size: 18,
+          );
+        }
+
+        List<dynamic> items = productProvider.products.where((p) {
+          final cats = p['categories'] as List?;
+          if (cats != null) {
+            return cats.any((c) => c['name'].toString().contains('عناوين') || c['name'].toString().contains('عنوان'));
+          }
+          return false;
+        }).toList();
+
+        // Fallback for demo if no categories match perfectly
+        if (items.isEmpty) {
+          final nameMatches = productProvider.products.where((p) => p['name'].toString().contains('عنوان') || p['name'].toString().contains('عناوين')).toList();
+          items = nameMatches.isNotEmpty ? nameMatches : productProvider.products;
+        }
+
+        if (items.isEmpty) {
+          return const SizedBox(
+            height: 154,
+            child: Center(child: Text('لا يوجد عناوين حاليا', style: TextStyle(color: Colors.grey))),
+          );
+        }
+
+        return SizedBox(
+          height: 165,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: items.length,
+            itemBuilder: (context, index) {
+              final prod = items[index];
+              final productId = int.tryParse(prod['id'].toString()) ?? 0;
+              final String name = prod['name']?.toString() ?? 'عنوان';
+              final String price = prod['price']?.toString() ?? '0';
+
+              return Container(
+                width: 155,
+                margin: const EdgeInsets.only(left: 14),
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(18),
+                  border: Border.all(color: const Color(0xFFF1F5F9)),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.02),
+                      blurRadius: 8,
+                      offset: const Offset(0, 4),
                     ),
-                    SizedBox(width: 6),
-                    Expanded(
-                      child: Text(
-                        titles[index],
-                        style: const TextStyle(
-                          fontWeight: FontWeight.w800,
-                          fontSize: 13,
-                          color: Color(0xFF1E293B),
+                  ],
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  children: [
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.start,
+                      children: [
+                        const Icon(
+                          Icons.place_rounded,
+                          color: Color(0xFFE71D24),
+                          size: 18,
                         ),
-                        overflow: TextOverflow.ellipsis,
+                        const SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            name,
+                            style: const TextStyle(
+                              fontWeight: FontWeight.w800,
+                              fontSize: 13,
+                              color: Color(0xFF1E293B),
+                            ),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                      ],
+                    ),
+                    Text(
+                      '$price جنيه\nتعرف على تفاصيل العنوان',
+                      textAlign: TextAlign.start,
+                      style: const TextStyle(
+                        fontSize: 11,
+                        color: Color(0xFF94A3B8),
+                        fontWeight: FontWeight.w600,
+                        height: 1.4,
+                      ),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    SizedBox(
+                      width: double.infinity,
+                      child: Consumer<CartProvider>(
+                        builder: (context, cartProvider, child) {
+                          final cartItem = cartProvider.cartItems.firstWhere(
+                              (item) => item['id'].toString() == productId.toString(),
+                              orElse: () => null);
+
+                          final isInCart = cartItem != null;
+                          final quantity = isInCart ? (cartItem['quantity'] as int? ?? 1) : 0;
+                          final itemKey = isInCart ? cartItem['key'].toString() : null;
+
+                          if (isInCart) {
+                            return Container(
+                              height: 36,
+                              decoration: BoxDecoration(
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(color: const Color(0xFFE71D24)),
+                              ),
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                                  InkWell(
+                                    onTap: cartProvider.isLoading ? null : () async {
+                                      await cartProvider.updateCartItemQuantity(itemKey!, quantity + 1);
+                                    },
+                                    child: const Icon(Icons.add, color: Color(0xFFE71D24), size: 18),
+                                  ),
+                                  Text(
+                                    '$quantity',
+                                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                                  ),
+                                  InkWell(
+                                    onTap: cartProvider.isLoading ? null : () async {
+                                      final newQty = quantity - 1;
+                                      if (newQty < 1) {
+                                        await cartProvider.removeCartItem(itemKey!);
+                                      } else {
+                                        await cartProvider.updateCartItemQuantity(itemKey!, newQty);
+                                      }
+                                    },
+                                    child: const Icon(Icons.remove, color: Color(0xFFE71D24), size: 18),
+                                  ),
+                                ],
+                              ),
+                            );
+                          }
+
+                          return ElevatedButton(
+                            onPressed: cartProvider.isLoading ? null : () async {
+                              await cartProvider.addToCart(productId, 1);
+                            },
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE71D24),
+                              foregroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(10),
+                              ),
+                              padding: const EdgeInsets.symmetric(vertical: 0),
+                              minimumSize: const Size(double.infinity, 36),
+                              elevation: 0,
+                            ),
+                            child: cartProvider.isLoading
+                                ? const SizedBox(width: 16, height: 16, child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2))
+                                : const Text(
+                                    'اطلب الآن',
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      fontSize: 12,
+                                    ),
+                                  ),
+                          );
+                        }
                       ),
                     ),
                   ],
                 ),
-                Text(
-                  'تعرف على باقات العنوان\n${titles[index].replaceAll("العنوان ", "")}',
-                  textAlign: TextAlign.start,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    color: Color(0xFF94A3B8),
-                    fontWeight: FontWeight.w600,
-                    height: 1.4,
-                  ),
-                ),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton(
-                    onPressed: () {},
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE71D24),
-                      foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(10),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 10),
-                      elevation: 0,
-                    ),
-                    child: Text(
-                      'اطلب الآن',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          );
-        },
-      ),
+              );
+            },
+          ),
+        );
+      },
     );
   }
 }

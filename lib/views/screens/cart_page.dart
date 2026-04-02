@@ -20,8 +20,14 @@ class _CartPageState extends State<CartPage> {
     Provider.of<CartProvider>(context, listen: false).removeCartItem(itemKey);
   }
 
-  void _clearCart() {
-    Provider.of<CartProvider>(context, listen: false).clearCart();
+  void _updateQuantity(String itemKey, int currentQuantity, int change) {
+    final newQuantity = currentQuantity + change;
+    if (newQuantity < 1) {
+      _removeItem(itemKey);
+    } else {
+      Provider.of<CartProvider>(context, listen: false)
+          .updateCartItemQuantity(itemKey, newQuantity);
+    }
   }
 
   @override
@@ -74,7 +80,9 @@ class _CartPageState extends State<CartPage> {
                   Align(
                     alignment: Alignment.center,
                     child: TextButton.icon(
-                      onPressed: _clearCart,
+                      onPressed: () {
+                         Provider.of<CartProvider>(context, listen: false).clearCart();
+                      },
                       icon: const Icon(
                         Icons.refresh,
                         color: Colors.grey,
@@ -181,12 +189,13 @@ class _CartPageState extends State<CartPage> {
                       : () async {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text(
-                                'جاري معالجة الطلب وإتمام الدفع...',
-                              ),
+                              content: Text('جاري معالجة الطلب وإتمام الدفع...'),
                             ),
                           );
 
+                          // Step 1: Calculate total amount here (e.g., from cartProvider or predefined)
+                          int amount = 2000; // Example: $20.00 -> 2000 cents. Update logic based on cart logic
+                          
                           // Example checkout data (normally collected from a form)
                           final checkoutData = {
                             'billing_address': {
@@ -195,9 +204,58 @@ class _CartPageState extends State<CartPage> {
                               'email': 'test@example.com',
                               'phone': '0100000000',
                             },
-                            'payment_method':
-                                'bacs', // Example manual payment method, or logic to integration stripe
+                            'payment_method': _selectedPayment == PaymentMethod.visa ? 'stripe' : 'bacs',
                           };
+
+                          if (_selectedPayment == PaymentMethod.visa) {
+                            try {
+                              // Create Payment Intent via your Backend
+                              final paymentIntentData = await cartProvider.createPaymentIntent(
+                                amount,
+                                'usd', // Currency
+                                'pm_card_visa', // Payment method (card) Example
+                              );
+                              
+                              if (paymentIntentData != null && paymentIntentData['client_secret'] != null) {
+                                final clientSecret = paymentIntentData['client_secret'];
+                                final paymentIntentId = paymentIntentData['id'];
+
+                                // Initialize Stripe Payment Sheet (Frontend)
+                                await Stripe.instance.initPaymentSheet(
+                                  paymentSheetParameters: SetupPaymentSheetParameters(
+                                    paymentIntentClientSecret: clientSecret,
+                                    merchantDisplayName: 'Online Ezzy',
+                                  ),
+                                );
+
+                                // Present Stripe Payment Sheet (Frontend)
+                                await Stripe.instance.presentPaymentSheet();
+
+                                // Optional: Confirm from Backend if required 
+                                // await cartProvider.confirmPaymentIntent(paymentIntentId, { 'payment_method': 'pm_card_visa' });
+                                
+                                // Success! Now place the actual order in WooCommerce
+                                checkoutData['payment_data'] = [
+                                  {
+                                    'key': 'payment_method',
+                                    'value': paymentIntentId,
+                                  }
+                                ];
+                              } else {
+                                throw Exception("فشل في استخراج بيانات الدفع.");
+                              }
+                            } catch (e) {
+                              if (!context.mounted) return;
+                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text('فشل عملية الدفع: ${e.toString()}'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                              return; // Stop execution on payment failure
+                            }
+                          }
 
                           final result = await cartProvider.checkout(
                             checkoutData,
@@ -212,11 +270,10 @@ class _CartPageState extends State<CartPage> {
                                 backgroundColor: Colors.green,
                               ),
                             );
-                            // refresh or clear
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('فشل عملية الدفع، حاول مرة أخرى'),
+                                content: Text('فشل عملية إنشاء الطلب، حاول مرة أخرى'),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -259,6 +316,8 @@ class _CartPageState extends State<CartPage> {
     } else if (item['price'] != null) {
       rawPrice = item['price'].toString();
     }
+
+    final quantity = item['quantity'] ?? 1;
 
     // images
     var imageUrl = '';
@@ -372,13 +431,50 @@ class _CartPageState extends State<CartPage> {
                   fontWeight: FontWeight.w600,
                 ),
               ),
-              Text(
-                '\scripts_cart.pyrawPrice',
-                style: const TextStyle(
-                  color: Color(0xFF1E3A5F),
-                  fontSize: 16,
-                  fontWeight: FontWeight.bold,
-                ),
+              Row(
+                children: [
+                  Container(
+                    decoration: BoxDecoration(
+                      color: const Color(0xFFF1F5F9),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Row(
+                      children: [
+                        InkWell(
+                          onTap: () => _updateQuantity(id, quantity, 1),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Icon(Icons.add, size: 18, color: Color(0xFF1E3A5F)),
+                          ),
+                        ),
+                        Text(
+                          quantity.toString(),
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E3A5F),
+                          ),
+                        ),
+                        InkWell(
+                          onTap: () => _updateQuantity(id, quantity, -1),
+                          child: const Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                            child: Icon(Icons.remove, size: 18, color: Color(0xFF1E3A5F)),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Text(
+                    '\scripts_cart.py{(double.tryParse(rawPrice) ?? 0) * quantity}',
+                    style: const TextStyle(
+                      color: Color(0xFF1E3A5F),
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),

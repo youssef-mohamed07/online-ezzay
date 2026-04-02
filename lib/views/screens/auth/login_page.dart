@@ -4,6 +4,7 @@ import 'package:online_ezzy/core/app_translations.dart';
 import '../../../providers/auth_provider.dart';
 import '../shell_page.dart';
 import 'forgot_password_page.dart';
+import 'register_page.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -45,8 +46,9 @@ class _LoginPageState extends State<LoginPage> {
         (route) => false,
       );
     } else {
+      final errorMsg = authProvider.lastError ?? 'فشل تسجيل الدخول، تأكد من بياناتك'.tr;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('فشل تسجيل الدخول، تأكد من بياناتك'.tr)),
+        SnackBar(content: Text(errorMsg)),
       );
     }
   }
@@ -195,6 +197,35 @@ class _LoginPageState extends State<LoginPage> {
                         style: TextStyle(
                             fontSize: 15, fontWeight: FontWeight.bold),
                       ),
+                    ),
+                    SizedBox(height: 24),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Text(
+                          'ليس لديك حساب؟ '.tr,
+                          style: TextStyle(
+                              color: darkText.withOpacity(0.8),
+                              fontWeight: FontWeight.bold),
+                        ),
+                        GestureDetector(
+                          onTap: () {
+                            Navigator.of(context).push(
+                              MaterialPageRoute(
+                                builder: (_) => const RegisterPage(),
+                              ),
+                            );
+                          },
+                          child: Text(
+                            'إنشاء حساب جديد'.tr,
+                            style: TextStyle(
+                              color: red,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 14,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                     SizedBox(height: 24),
                     Row(

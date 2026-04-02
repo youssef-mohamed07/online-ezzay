@@ -51,14 +51,15 @@ class _RegisterPageState extends State<RegisterPage> {
 
     if (success) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('تم إنشاء الحساب بنجاح'.tr)),
+        SnackBar(content: Text('تم إنشاء الحساب بنجاح'.tr), backgroundColor: Colors.green),
       );
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(builder: (_) => const LoginPage()),
       );
     } else {
+      final errorMsg = authProvider.lastError ?? 'حدث خطأ أثناء الإنشاء. حاول مجدداً'.tr;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('حدث خطأ أثناء الإنشاء. حاول مجدداً'.tr)),
+        SnackBar(content: Text(errorMsg), backgroundColor: Colors.red),
       );
     }
   }
