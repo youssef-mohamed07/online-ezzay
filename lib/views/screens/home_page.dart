@@ -237,25 +237,34 @@ class _TopActionsRow extends StatelessWidget {
   Widget build(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _ActionItem(
           title: 'اطلب توصيل',
-          imagePath: 'lib/assets/images/home/اطلب توصيل.png',
+          icon: Icons.inventory_2_rounded,
+          iconColor: Colors.red.shade600,
+          bgColor: Colors.red.shade50,
           onTap: onTapDelivery,
         ),
         _ActionItem(
           title: 'العناوين',
-          imagePath: 'lib/assets/images/home/العناوين.png',
+          icon: Icons.location_on_rounded,
+          iconColor: Colors.blue.shade600,
+          bgColor: Colors.blue.shade50,
           onTap: onTapAddress,
         ),
         _ActionItem(
           title: 'تتبع شحنتك',
-          imagePath: 'lib/assets/images/home/تتبع شحنتك.png',
+          icon: Icons.local_shipping_rounded,
+          iconColor: Colors.green.shade600,
+          bgColor: Colors.green.shade50,
           onTap: onTapTrack,
         ),
         _ActionItem(
           title: 'خدمات مالية',
-          imagePath: 'lib/assets/images/home/خدمات مالية.png',
+          icon: Icons.account_balance_wallet_rounded,
+          iconColor: Colors.orange.shade600,
+          bgColor: Colors.orange.shade50,
           onTap: onTapServices,
         ),
       ],
@@ -266,40 +275,63 @@ class _TopActionsRow extends StatelessWidget {
 class _ActionItem extends StatelessWidget {
   const _ActionItem({
     required this.title,
-    required this.imagePath,
+    required this.icon,
+    required this.iconColor,
+    required this.bgColor,
     required this.onTap,
   });
 
   final String title;
-  final String imagePath;
+  final IconData icon;
+  final Color iconColor;
+  final Color bgColor;
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
       onTap: onTap,
-      child: Column(
-        children: [
-          Container(
-            width: 76,
-            height: 76,
-            decoration: BoxDecoration(
-              color: Colors.white,
-              borderRadius: BorderRadius.circular(16),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withValues(alpha: 0.04),
-                  blurRadius: 10,
-                  offset: const Offset(0, 4),
-                ),
-              ],
+      child: Container(
+        width: 80,
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 4),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.grey.withValues(alpha: 0.1), width: 1),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.03),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
             ),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(16),
-              child: Image.asset(imagePath, fit: BoxFit.cover),
+          ],
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: bgColor,
+                shape: BoxShape.circle,
+              ),
+              child: Icon(icon, color: iconColor, size: 26),
             ),
-          ),
-        ],
+            const SizedBox(height: 8),
+            Text(
+              title,
+              style: const TextStyle(
+                fontSize: 11,
+                fontWeight: FontWeight.w800,
+                color: Color(0xFF1E293B),
+              ),
+              textAlign: TextAlign.center,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -415,20 +447,26 @@ class _TrackingCard extends StatelessWidget {
           Expanded(
             child: Container(
               height: 52,
-              padding: const EdgeInsets.symmetric(horizontal: 16),
               decoration: BoxDecoration(
                 color: const Color(0xFFF1F5F9),
                 borderRadius: BorderRadius.circular(14),
               ),
-              child: const Align(
-                alignment: Alignment.centerRight,
-                child: Text(
-                  'أدخل رقم التتبع',
-                  style: TextStyle(
+              child: const TextField(
+                textAlignVertical: TextAlignVertical.center,
+                decoration: InputDecoration(
+                  hintText: 'أدخل رقم التتبع',
+                  hintStyle: TextStyle(
                     color: Color(0xFF94A3B8),
                     fontSize: 14,
                     fontWeight: FontWeight.w600,
                   ),
+                  border: InputBorder.none,
+                  contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                ),
+                style: TextStyle(
+                  color: Color(0xFF1E293B),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w600,
                 ),
               ),
             ),

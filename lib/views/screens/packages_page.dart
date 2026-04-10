@@ -71,9 +71,52 @@ class _PackagesPageState extends State<PackagesPage> {
                   ),
                   const SizedBox(height: 32),
                   if (items.isEmpty && !productProvider.isLoading)
-                    const Text(
-                      'لا يوجد باقات تأكد من اتصال الانترنت أو إعدادات المتجر',
-                      style: TextStyle(color: Colors.red),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 40),
+                      child: Column(
+                        children: [
+                          Icon(
+                            Icons.wifi_off_rounded,
+                            size: 80,
+                            color: Colors.grey.shade300,
+                          ),
+                          const SizedBox(height: 16),
+                          const Text(
+                            'تعذر تحميل الباقات',
+                            style: TextStyle(
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                              color: Color(0xFF1E293B),
+                            ),
+                          ),
+                          const SizedBox(height: 8),
+                          const Text(
+                            'لا توجد باقات متاحة حالياً، يرجى التحقق من اتصالك بالإنترنت والمحاولة مرة أخرى.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Color(0xFF64748B),
+                            ),
+                          ),
+                          const SizedBox(height: 24),
+                          ElevatedButton.icon(
+                            onPressed: () {
+                              Provider.of<ProductProvider>(context, listen: false).loadProducts();
+                            },
+                            icon: const Icon(Icons.refresh_rounded),
+                            label: const Text('إعادة المحاولة', style: TextStyle(fontWeight: FontWeight.bold)),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: const Color(0xFFE71D24),
+                              foregroundColor: Colors.white,
+                              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 12),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                              elevation: 0,
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
 
                   ...items.map((prod) {

@@ -5,6 +5,7 @@ import 'package:online_ezzy/providers/auth_provider.dart';
 import 'edit_profile_page.dart';
 import 'settings_page.dart';
 import 'po_box_page.dart';
+import 'consultation_page.dart';
 import 'auth/login_page.dart';
 import 'shell_page.dart';
 
@@ -396,7 +397,15 @@ class _ProfilePageState extends State<ProfilePage>
             ),
           ),
           SizedBox(height: 8),
-          _buildMenuListItem('احصل على استشارة'),
+          _buildMenuListItem(
+            'احصل على استشارة',
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (_) => const ConsultationPage()),
+              );
+            },
+          ),
           const Divider(height: 1, color: Color(0xFFF4F6F9)),
           _buildMenuListItem(
             'صندوق بريدي',
