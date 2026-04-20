@@ -146,13 +146,11 @@ class _RegisterPageState extends State<RegisterPage> {
                   _buildLabel('عنوان الشارع / الحي'.tr),
                   _buildTextField(
                     hint: 'أدخل عنوانك'.tr,
-                    suffixIcon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black45),
                   ),
                   SizedBox(height: 16),
                   _buildLabel('المدينة'.tr),
                   _buildTextField(
                     hint: 'أدخل عنوانك'.tr, // To match mockup
-                    suffixIcon: Icon(Icons.keyboard_arrow_down_rounded, color: Colors.black45),
                   ),
                   SizedBox(height: 16),
                   _buildLabel('إنشاء كلمة مرور'.tr),

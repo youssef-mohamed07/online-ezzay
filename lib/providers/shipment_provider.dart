@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../core/api_service.dart';
 
 class ShipmentProvider extends ChangeNotifier {
   bool _isLoading = false;
@@ -8,64 +9,55 @@ class ShipmentProvider extends ChangeNotifier {
   List<Map<String, dynamic>> get shipments => _shipments;
 
   ShipmentProvider() {
-    _loadShipments();
+    loadShipments();
   }
 
-  Future<void> _loadShipments() async {
+  Future<void> loadShipments() async {
     _isLoading = true;
     notifyListeners();
 
-    // Mock API call delay
-    await Future.delayed(const Duration(seconds: 2));
-
-    // Currently mocked as there's no WooCommerce shipment API yet
-    _shipments = [
-      {
-        'id': 'TRK-100234',
-        'status': 'في المستودع',
-        'date': '2026-03-27',
-        'source': 'الرياض',
-        'destination': 'جدة',
-        'items': 3,
-        'weight': '5.2 كجم',
-      },
-      {
-        'id': 'TRK-100235',
-        'status': 'في الطريق',
-        'date': '2026-03-26',
-        'source': 'مكة',
-        'destination': 'الدمام',
-        'items': 1,
-        'weight': '1.5 كجم',
-      },
-      {
-        'id': 'TRK-100236',
-        'status': 'تم التسليم',
-        'date': '2026-03-20',
-        'source': 'المدينة',
-        'destination': 'الطائف',
-        'items': 5,
-        'weight': '10.0 كجم',
-      },
-    ];
+    try {
+      final res = await ApiService.getShipments();
+      if (res is List) {
+        _shipments = res
+            .whereType<Map>()
+            .map((item) => Map<String, dynamic>.from(item))
+            .toList();
+      } else {
+        _shipments = [];
+      }
+    } catch (e) {
+      _shipments = [];
+      print('Error loading shipments: $e');
+    }
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<Map<String, dynamic>?> getShipmentDetails(String id) async {
+    Map<String, dynamic>? result;
+    try {
+      result = await ApiService.getShipmentDetails(id);
+    } catch (e) {
+      print('Error loading shipment details: $e');
+    }
+    return result;
   }
 
   Future<Map<String, dynamic>?> trackShipment(String trackingNumber) async {
     _isLoading = true;
     notifyListeners();
     
-    await Future.delayed(const Duration(seconds: 1)); // Mock Network delay
+    Map<String, dynamic>? result;
+    try {
+      result = await ApiService.trackShipment(trackingNumber);
+    } catch (e) {
+      print('Error tracking shipment: $e');
+    }
     
     _isLoading = false;
     notifyListeners();
-    
-    try {
-      return _shipments.firstWhere((s) => s['id'] == trackingNumber);
-    } catch (_) {
-      return null; // Not found
-    }
+    return result;
   }
 }

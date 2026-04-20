@@ -32,12 +32,14 @@ class AddressPage extends StatelessWidget {
               _buildAddressCard(
                 context,
                 title: 'عنوان الداخل',
-                imageUrl: 'https://images.pexels.com/photos/196667/pexels-photo-196667.jpeg?auto=compress&cs=tinysrgb&w=600', // القدس كمثال للمحاكاة
+                imageUrl:
+                    'https://images.pexels.com/photos/196667/pexels-photo-196667.jpeg?auto=compress&cs=tinysrgb&w=600', // القدس كمثال للمحاكاة
                 onPressed: () {
                   Navigator.push(
                     context,
                     MaterialPageRoute(
-                      builder: (context) => const AddressDetailsPage(title: 'عنوان الداخل'),
+                      builder: (context) =>
+                          const AddressDetailsPage(title: 'عنوان الداخل'),
                     ),
                   );
                 },
@@ -46,7 +48,8 @@ class AddressPage extends StatelessWidget {
               _buildAddressCard(
                 context,
                 title: 'عنوان صيني',
-                imageUrl: 'https://images.pexels.com/photos/17233267/pexels-photo-17233267.jpeg?auto=compress&cs=tinysrgb&w=600',
+                imageUrl:
+                    'https://images.pexels.com/photos/17233267/pexels-photo-17233267.jpeg?auto=compress&cs=tinysrgb&w=600',
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -60,7 +63,8 @@ class AddressPage extends StatelessWidget {
               _buildAddressCard(
                 context,
                 title: 'عنوان امريكي',
-                imageUrl: 'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=600',
+                imageUrl:
+                    'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=600',
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -78,7 +82,12 @@ class AddressPage extends StatelessWidget {
     );
   }
 
-  Widget _buildAddressCard(BuildContext context, {required String title, required String imageUrl, required VoidCallback onPressed}) {
+  Widget _buildAddressCard(
+    BuildContext context, {
+    required String title,
+    required String imageUrl,
+    required VoidCallback onPressed,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -136,7 +145,7 @@ class AddressPage extends StatelessWidget {
                 ),
               ),
             ),
-          )
+          ),
         ],
       ),
     );

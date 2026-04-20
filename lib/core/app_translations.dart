@@ -1,30 +1,45 @@
 class AppTranslations {
   static String currentLang = 'ar';
   static const Map<String, String> arToEn = {
-    'باستخدامك لتطبيق أونلاين إيزي، فإنك توافق على جميع الشروط والأحكام الموضحة هنا. يُرجى قراءة هذه الشروط بعناية قبل استخدام التطبيق.': 'By using the Online Easy application, you agree to all the terms and conditions described here. Please read these terms carefully before using the Application.',
-    'يجب على المستخدم تقديم معلومات صحيحة ودقيقة عند إنشاء الحساب والالتزام بكافة القوانين المحلية عند إرسال الشحنات والطرود.': 'The user must provide true and accurate information when creating the account and adhere to all local laws when sending shipments and packages.',
-    'يحتفظ تطبيق أونلاين إيزي بالحق في تعديل هذه الشروط في أي وقت، وسيتم إشعار المستخدمين بأي تغييرات جوهرية في حينه.': 'Online Easy reserves the right to modify these terms at any time, and users will be notified of any material changes in a timely manner.',
-    'ملحوظة يمكنك انشاء حسابك بعد اختيار الخدمات و اكمال\nعملية الدفع': 'Note: You can create your account after selecting the services and completing the payment process',
-    'استخدم رقم الشحنة لمتابعة المسار وموعد الوصول ونقاط التحديث.': 'Use the shipment number to track the route, arrival time and update points.',
-    'سجل دخولك لبدء استخدام خدمات الشحن وإدارة\nطلباتك بسهولة': 'Log in to start using shipping services and easily manage your orders',
-    'ادخل الرمز المكوّن من 4 أرقام الذي تم إرساله إلى هاتفك.': 'Enter the 4-digit code sent to your phone.',
-    'ادخل بريدك الإلكتروني أو رقم الهاتف لإرسال رمز التحقق.': 'Enter your email or phone number to send the verification code.',
-    'يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل': 'The password must contain at least 8 characters',
-    'اكتمل 68%  موعد الوصول: 18 مارس 13:30': '68% complete Arrival date: 18 March 13:30',
+    'باستخدامك لتطبيق أونلاين إيزي، فإنك توافق على جميع الشروط والأحكام الموضحة هنا. يُرجى قراءة هذه الشروط بعناية قبل استخدام التطبيق.':
+        'By using the Online Easy application, you agree to all the terms and conditions described here. Please read these terms carefully before using the Application.',
+    'يجب على المستخدم تقديم معلومات صحيحة ودقيقة عند إنشاء الحساب والالتزام بكافة القوانين المحلية عند إرسال الشحنات والطرود.':
+        'The user must provide true and accurate information when creating the account and adhere to all local laws when sending shipments and packages.',
+    'يحتفظ تطبيق أونلاين إيزي بالحق في تعديل هذه الشروط في أي وقت، وسيتم إشعار المستخدمين بأي تغييرات جوهرية في حينه.':
+        'Online Easy reserves the right to modify these terms at any time, and users will be notified of any material changes in a timely manner.',
+    'ملحوظة يمكنك انشاء حسابك بعد اختيار الخدمات و اكمال\nعملية الدفع':
+        'Note: You can create your account after selecting the services and completing the payment process',
+    'استخدم رقم الشحنة لمتابعة المسار وموعد الوصول ونقاط التحديث.':
+        'Use the shipment number to track the route, arrival time and update points.',
+    'سجل دخولك لبدء استخدام خدمات الشحن وإدارة\nطلباتك بسهولة':
+        'Log in to start using shipping services and easily manage your orders',
+    'ادخل الرمز المكوّن من 4 أرقام الذي تم إرساله إلى هاتفك.':
+        'Enter the 4-digit code sent to your phone.',
+    'ادخل بريدك الإلكتروني أو رقم الهاتف لإرسال رمز التحقق.':
+        'Enter your email or phone number to send the verification code.',
+    'يجب أن تحتوي كلمة المرور على 8 أحرف على الأقل':
+        'The password must contain at least 8 characters',
+    'اكتمل 68%  موعد الوصول: 18 مارس 13:30':
+        '68% complete Arrival date: 18 March 13:30',
     'ادخل البريد الإلكتروني أو رقم الهاتف': 'Enter your email or phone number',
     'أدخل البريد الالكتروني أو رقم الهاتف': 'Enter your email or phone number',
-    'راحه في الإرسال، سهولة في الاستلام': 'Convenience in sending, ease in receiving',
-    'اختر كلمة مرور قوية لحماية حسابك.': 'Choose a strong password to protect your account.',
-    'ادخل رقم الشحنة (مثال: EZ-94012)': 'Enter the shipment number (example: EZ-94012)',
+    'راحه في الإرسال، سهولة في الاستلام':
+        'Convenience in sending, ease in receiving',
+    'اختر كلمة مرور قوية لحماية حسابك.':
+        'Choose a strong password to protect your account.',
+    'ادخل رقم الشحنة (مثال: EZ-94012)':
+        'Enter the shipment number (example: EZ-94012)',
     'الوزن \$weight كجم | تاريخ \$date': 'the weight\$weightkg|date\$date',
     'ميناء الإسكندرية    القاهرة مصر': 'Alexandria Port, Cairo, Egypt',
     'البريد الإلكتروني / رقم الهاتف': 'Email/phone number',
     'البريد الالكتروني / رقم الهاتف': 'Email/phone number',
-    'أنشئ حسابك واكمل عملية الشراء': 'Create your account and complete the purchase process',
+    'أنشئ حسابك واكمل عملية الشراء':
+        'Create your account and complete the purchase process',
     'إنشاء الحساب و الانتقال للدفع': 'Create an account and proceed to payment',
     'رقم التتبع : \$trackingNumber': 'Tracking number:\$trackingNumber',
     'احصل على العنوان وادفع الآن': 'Get the address and pay now',
     'تخطي التسجيل و الدخول ك ضيف': 'Skip registration and log in as a guest',
+    'تخطي التسجيل والدخول كضيف': 'Skip registration and log in as a guest',
     'تم تحديث كلمة المرور بنجاح': 'The password has been updated successfully',
     'الفرز في ميناء الإسكندرية': 'Sorting in Alexandria Port',
     'توصيل أسرع. إدارة أذكى.': 'Faster delivery. Smarter management.',

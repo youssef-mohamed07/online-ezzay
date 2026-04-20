@@ -7,11 +7,20 @@ import 'providers/auth_provider.dart';
 import 'providers/cart_provider.dart';
 import 'providers/product_provider.dart';
 import 'providers/shipment_provider.dart';
+import 'providers/dashboard_provider.dart';
 
-void main() {
+const String _defaultStripePublishableKey =
+    'pk_test_TYooMQauvdEDq54NiTphI7jx';
+
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  Stripe.publishableKey =
-      'pk_test_TYooMQauvdEDq54NiTphI7jx'; // TODO: replace with your actual key
+  const configuredPk = String.fromEnvironment(
+    'STRIPE_PUBLISHABLE_KEY',
+    defaultValue: _defaultStripePublishableKey,
+  );
+
+  Stripe.publishableKey = configuredPk;
+  await Stripe.instance.applySettings();
 
   runApp(
     MultiProvider(
@@ -20,8 +29,10 @@ void main() {
         ChangeNotifierProvider(create: (_) => CartProvider()),
         ChangeNotifierProvider(create: (_) => ProductProvider()),
         ChangeNotifierProvider(create: (_) => ShipmentProvider()),
+        ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
       child: const OnlineEzzyApp(),
+
     ),
   );
 }

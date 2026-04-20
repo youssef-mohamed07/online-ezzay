@@ -1,5 +1,6 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
+import 'package:online_ezzy/core/api_service.dart';
 
 class CustomShipmentPage extends StatefulWidget {
   const CustomShipmentPage({Key? key}) : super(key: key);
@@ -215,8 +216,34 @@ class _CustomShipmentPageState extends State<CustomShipmentPage> {
             width: double.infinity,
             height: 55,
             child: ElevatedButton(
-              onPressed: () {
-                // منطق الإضافة للسلة هنا
+              onPressed: () async {
+                bool hasUnconfirmed = parcels.any((p) => !p.isConfirmed);
+                if (hasUnconfirmed) {
+                  ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('الرجاء تأكيد جميع الطرود أولاً')));
+                  return;
+                }
+                if (parcels.isEmpty) return;
+
+                final data = {
+                  'total': grandTotal,
+                  'parcels': parcels.map((p) => {
+                    'length': p.lengthController.text,
+                    'width': p.widthController.text,
+                    'height': p.heightController.text,
+                    'volume': p.volume,
+                  }).toList(),
+                };
+                
+                showDialog(context: context, barrierDismissible: false, builder: (_) => const Center(child: CircularProgressIndicator()));
+                final res = await ApiService.requestShipment(data);
+                if (mounted) Navigator.pop(context); // loading
+
+                if (res != null) {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('تم إرسال طلب الشحنة بنجاح')));
+                  if (mounted) Navigator.pop(context);
+                } else {
+                  if (mounted) ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('فشل في إرسال طلب الشحنة')));
+                }
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -226,8 +253,8 @@ class _CustomShipmentPageState extends State<CustomShipmentPage> {
                 elevation: 0,
               ),
               child: Text(
-                'اضافة الي السلة: \$${grandTotal.toStringAsFixed(2)}',
-                style: TextStyle(
+                'طلب شحنة: \$${grandTotal.toStringAsFixed(2)}',
+                style: const TextStyle(
                   fontSize: 18,
                   fontWeight: FontWeight.bold,
                   color: Colors.white,
@@ -236,7 +263,6 @@ class _CustomShipmentPageState extends State<CustomShipmentPage> {
             ),
           ),
         ),
-        
         // لمحاكاة شريط التنقل السفلي الموجود في الصورة
         bottomNavigationBar: BottomNavigationBar(
           type: BottomNavigationBarType.fixed,

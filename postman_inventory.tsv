@@ -1,0 +1,30 @@
+method	raw	auth	user	folder
+GET	https://demo.onlineezzy.com/wp-json/wc/store/v1/cart	noauth		ezzy app / Cart Items / Cart Token
+POST	https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items	noauth		ezzy app / Cart Items / Add Cart Item
+GET	https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items	noauth		ezzy app / Cart Items / List Cart Items
+GET	https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items/367ac971f08b41f2fe1248a63e28e837	noauth		ezzy app / Cart Items / Single Cart Item
+PUT	https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items/89c86ad4bb118af4b7d49925b1b319e1	bearer		ezzy app / Cart Items / Edit Single Cart Item
+DELETE	https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items/89c86ad4bb118af4b7d49925b1b319e1	bearer		ezzy app / Cart Items / Delete Single Cart Item
+DELETE	https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items	bearer		ezzy app / Cart Items / Delete All Cart Items
+POST	https://demo.onlineezzy.com/wp-json/wc/store/v1/checkout	noauth		ezzy app / Cart Items / checkout
+POST	https://api.stripe.com/v1/payment_intents	bearer		ezzy app / Cart Items / stripe
+POST	https://api.stripe.com/v1/payment_intents/pi_3SFxv2RwqXYqDUmP0U1SsJ3v/confirm	bearer		ezzy app / Cart Items / stripe Copy
+GET	https://demo.onlineezzy.com/wp-json/wc/v3/products/categories	basic	ck_f39120cd330fd760dc139d9509f02e4b2eedf3a2	ezzy app / categories
+GET	https://demo.onlineezzy.com/wp-json/wc/v3/products	basic	ck_f39120cd330fd760dc139d9509f02e4b2eedf3a2	ezzy app / products
+GET	https://demo.onlineezzy.com/wp-json/wc/store/v1/products/categories/1	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / Products category
+POST	https://demo.onlineezzy.com/wp-json/jwt-auth/v1/token	noauth		ezzy app / log in
+POST	https://demo.onlineezzy.com/wp-json/custom-api/v1/register	noauth		ezzy app / register
+GET	https://demo.onlineezzy.com/wp-json/wc/v3/customers/123	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / customers
+GET	https://demo.onlineezzy.com/wp-json/ezzy/v1/shipments	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / shipments
+GET	https://demo.onlineezzy.com/wp-json/ezzy/v1/shipments/y002	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / shipments {id}
+POST	https://demo.onlineezzy.com/wp-json/ezzy/v1/shipments/request	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / shipments request
+GET	https://demo.onlineezzy.com/wp-json/ezzy/v1/dashboard	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / dashboard
+GET	https://demo.onlineezzy.com/wp-json/ezzy/v1/sliders	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / sliders
+GET	https://demo.onlineezzy.com/wp-json/ezzy/v1/track?number=AE023949010	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / track
+GET	https://demo.onlineezzy.com/wp-json/ezzy/v1/notifications	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / notifications
+POST	https://demo.onlineezzy.com/wp-json/ezzy/v1/notifications/1/read	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / markNotificationAsRead
+POST	https://demo.onlineezzy.com/wp-json/ezzy/v1/change_password	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / change_password
+GET	https://demo.onlineezzy.com/wp-json/ezzy/v1/warehouse-addresses	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / warehouse-addresses
+GET	https://demo.onlineezzy.com/wp-json/wp/v2/pages?slug=privacy-policy	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / privacy-policy page
+GET	https://demo.onlineezzy.com/wp-json/ezzy/v1/settings	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / settings
+POST	https://demo.onlineezzy.com/wp-json/ezzy/v1/contact	basic	ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f	ezzy app / contact

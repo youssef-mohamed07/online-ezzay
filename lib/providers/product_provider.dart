@@ -11,6 +11,9 @@ class ProductProvider extends ChangeNotifier {
   List<dynamic> _products = [];
   List<dynamic> get products => _products;
 
+  List<dynamic> _deliveryProducts = [];
+  List<dynamic> get deliveryProducts => _deliveryProducts;
+
   List<dynamic> _categories = [];
   List<dynamic> get categories => _categories;
 
@@ -45,6 +48,45 @@ class ProductProvider extends ChangeNotifier {
 
     _isLoading = false;
     notifyListeners();
+  }
+
+  Future<void> loadProductsByCategory(int categoryId) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _deliveryProducts = await ApiService.getProducts(categoryId: categoryId);
+    } catch (e) {
+      print('Load category products error: $e');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> loadProductsByCategories(List<int> categoryIds) async {
+    _isLoading = true;
+    notifyListeners();
+
+    try {
+      _deliveryProducts = await ApiService.getProducts(categoryIds: categoryIds);
+    } catch (e) {
+      print('Load categories products error: $e');
+    }
+
+    _isLoading = false;
+    notifyListeners();
+  }
+
+  Future<void> loadDeliveryProducts({
+    int categoryId = 68,
+    List<int>? categoryIds,
+  }) async {
+    if (categoryIds != null && categoryIds.isNotEmpty) {
+      await loadProductsByCategories(categoryIds);
+      return;
+    }
+    await loadProductsByCategory(categoryId);
   }
 
   Future<Map<String, dynamic>?> getSingleCategoryDetails(String id) async {

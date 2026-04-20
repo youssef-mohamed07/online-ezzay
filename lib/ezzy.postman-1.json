@@ -1,0 +1,1604 @@
+{
+    "info": {
+        "name": "001",
+        "description": "",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "ezzy app",
+            "description": "",
+            "item": [
+                {
+                    "name": "Cart Items",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "Cart Token",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "noauth",
+                                    "noauth": []
+                                },
+                                "method": "GET",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": []
+                                },
+                                "header": [],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/cart",
+                                    "path": [
+                                        "wp-json",
+                                        "wc",
+                                        "store",
+                                        "v1",
+                                        "cart"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Add Cart Item",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "noauth",
+                                    "noauth": []
+                                },
+                                "method": "POST",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Cart-Token",
+                                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidF85ZjNkMWQ0MjMxYTRhZjI1NzViNmRkOGYyNTlkMTYiLCJleHAiOjE3NzM1MjUwMTAsImlzcyI6InN0b3JlLWFwaSIsImlhdCI6MTc3MzM1MjIxMH0.l85GKjMdumWdVxWqOqo3ejF3nn0j8voqXxBiRp2ZOi4",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items",
+                                    "path": [
+                                        "wp-json",
+                                        "wc",
+                                        "store",
+                                        "v1",
+                                        "cart",
+                                        "items"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [
+                                        {
+                                            "key": "id",
+                                            "value": "5762",
+                                            "description": "",
+                                            "type": "string"
+                                        },
+                                        {
+                                            "key": "quantity",
+                                            "value": "1",
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "List Cart Items",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "noauth",
+                                    "noauth": []
+                                },
+                                "method": "GET",
+                                "body": {
+                                    "mode": "formdata",
+                                    "formdata": []
+                                },
+                                "header": [
+                                    {
+                                        "key": "Cart-Token",
+                                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidF9kNWViYjE5OTAzMzk3NDE0ZmVhZDkwY2YzZGQ0ODIiLCJleHAiOjE3NzM1MDQ2ODEsImlzcyI6InN0b3JlLWFwaSIsImlhdCI6MTc3MzMzMTg4MX0.Fi6M-NANdvh3_BpB2Ko70KU8UTdG2IlroRG0EmvYGGA",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items",
+                                    "path": [
+                                        "wp-json",
+                                        "wc",
+                                        "store",
+                                        "v1",
+                                        "cart",
+                                        "items"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Single Cart Item",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "noauth",
+                                    "noauth": []
+                                },
+                                "method": "GET",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Cart-Token",
+                                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoidF9kNWViYjE5OTAzMzk3NDE0ZmVhZDkwY2YzZGQ0ODIiLCJleHAiOjE3NzM1MDQ2ODEsImlzcyI6InN0b3JlLWFwaSIsImlhdCI6MTc3MzMzMTg4MX0.Fi6M-NANdvh3_BpB2Ko70KU8UTdG2IlroRG0EmvYGGA",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items/367ac971f08b41f2fe1248a63e28e837",
+                                    "path": [
+                                        "wp-json",
+                                        "wc",
+                                        "store",
+                                        "v1",
+                                        "cart",
+                                        "items",
+                                        "367ac971f08b41f2fe1248a63e28e837"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Edit Single Cart Item",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2RlbW8wNS5jb20iLCJpYXQiOjE3NTc1NDY1MjgsIm5iZiI6MTc1NzU0NjUyOCwiZXhwIjoxNzYwMTM4NTI4LCJkYXRhIjp7InVzZXIiOnsiaWQiOjg2MCwiZGV2aWNlIjoiIiwicGFzcyI6ImZhOGI4MTZkNzA4YzM5MWI2ZjJkMmQ0OTNiZmUzNDIwIn19fQ.GEY5kFMUZFGHQHdVLAqJdhQTnuIL9fa07Fw8swt-kJk",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "PUT",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Cart-Token",
+                                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiODYwIiwiZXhwIjoxNzU3NzY5MDgxLCJpc3MiOiJ3Y1wvc3RvcmVcL3YxIiwiaWF0IjoxNzU3NTk2MjgxfQ.KqkjRCw37rDmX1D8vVVoACNe63U6v-X8gzqqhezQvD4",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items/89c86ad4bb118af4b7d49925b1b319e1",
+                                    "path": [
+                                        "wp-json",
+                                        "wc",
+                                        "store",
+                                        "v1",
+                                        "cart",
+                                        "items",
+                                        "89c86ad4bb118af4b7d49925b1b319e1"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [
+                                        {
+                                            "key": "quantity",
+                                            "value": [
+                                                "10"
+                                            ],
+                                            "description": "",
+                                            "type": "string"
+                                        }
+                                    ],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Delete Single Cart Item",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2RlbW8wNS5jb20iLCJpYXQiOjE3NTc1NDY1MjgsIm5iZiI6MTc1NzU0NjUyOCwiZXhwIjoxNzYwMTM4NTI4LCJkYXRhIjp7InVzZXIiOnsiaWQiOjg2MCwiZGV2aWNlIjoiIiwicGFzcyI6ImZhOGI4MTZkNzA4YzM5MWI2ZjJkMmQ0OTNiZmUzNDIwIn19fQ.GEY5kFMUZFGHQHdVLAqJdhQTnuIL9fa07Fw8swt-kJk",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "DELETE",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Cart-Token",
+                                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiODYwIiwiZXhwIjoxNzU3NzY5MDgxLCJpc3MiOiJ3Y1wvc3RvcmVcL3YxIiwiaWF0IjoxNzU3NTk2MjgxfQ.KqkjRCw37rDmX1D8vVVoACNe63U6v-X8gzqqhezQvD4",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items/89c86ad4bb118af4b7d49925b1b319e1",
+                                    "path": [
+                                        "wp-json",
+                                        "wc",
+                                        "store",
+                                        "v1",
+                                        "cart",
+                                        "items",
+                                        "89c86ad4bb118af4b7d49925b1b319e1"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "Delete All Cart Items",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2RlbW8wNS5jb20iLCJpYXQiOjE3NTc1NDY1MjgsIm5iZiI6MTc1NzU0NjUyOCwiZXhwIjoxNzYwMTM4NTI4LCJkYXRhIjp7InVzZXIiOnsiaWQiOjg2MCwiZGV2aWNlIjoiIiwicGFzcyI6ImZhOGI4MTZkNzA4YzM5MWI2ZjJkMmQ0OTNiZmUzNDIwIn19fQ.GEY5kFMUZFGHQHdVLAqJdhQTnuIL9fa07Fw8swt-kJk",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "DELETE",
+                                "body": {},
+                                "header": [
+                                    {
+                                        "key": "Cart-Token",
+                                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiODYwIiwiZXhwIjoxNzU3NzY5MDgxLCJpc3MiOiJ3Y1wvc3RvcmVcL3YxIiwiaWF0IjoxNzU3NTk2MjgxfQ.KqkjRCw37rDmX1D8vVVoACNe63U6v-X8gzqqhezQvD4",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/cart/items",
+                                    "path": [
+                                        "wp-json",
+                                        "wc",
+                                        "store",
+                                        "v1",
+                                        "cart",
+                                        "items"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "checkout",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "noauth",
+                                    "noauth": []
+                                },
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{\r\n  \"billing_address\": {\r\n    \"first_name\": \"Ahmed\",\r\n     \"last_name\": \"Ali\",\r\n    \"address_1\": \"123 Street Name\",\r\n    \"postcode\": \"10023\",\r\n    \"city\": \"Casablanca\",\r\n    \"country\": \"PS\",\r\n    \"email\": \"test0012@test0010.com\",\r\n    \"phone\": \"0612345678\",\r\n    \"state\": \"الخليل\"\r\n  },\r\n  \"payment_method\": \"stripe\",\r\n  \"payment_data\": [\r\n    {\r\n      \"key\": \"payment_method\",\r\n      \"value\": \"pi_3SFy3jRwqXYqDUmP0HBqUDis\"\r\n    }\r\n  ],\r\n  \"password\": \"MySecurePassword123\"\r\n}\r\n",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [
+                                    {
+                                        "key": "Cart-Token",
+                                        "value": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyX2lkIjoiOTIzIiwiZXhwIjoxNzYwMTA1NTAwLCJpc3MiOiJzdG9yZS1hcGkiLCJpYXQiOjE3NTk5MzI3MDB9.xfoGpWWDwZJZdg942Rknh3cvJmELBDpc-HqcXYVZvGE",
+                                        "description": "",
+                                        "type": "string"
+                                    }
+                                ],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/checkout",
+                                    "path": [
+                                        "wp-json",
+                                        "wc",
+                                        "store",
+                                        "v1",
+                                        "checkout"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "stripe",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "REDACTED_STRIPE_SECRET_KEY",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "body": {
+                                    "mode": "urlencoded",
+                                    "urlencoded": [
+                                        {
+                                            "key": "amount",
+                                            "value": "20",
+                                            "type": "text",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "currency",
+                                            "value": "usd",
+                                            "type": "text",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "payment_method",
+                                            "value": "pm_card_visa",
+                                            "type": "text",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "confirm",
+                                            "value": "true",
+                                            "type": "text",
+                                            "disabled": false
+                                        }
+                                    ]
+                                },
+                                "header": [],
+                                "url": {
+                                    "raw": "https://api.stripe.com/v1/payment_intents",
+                                    "path": [
+                                        "v1",
+                                        "payment_intents"
+                                    ],
+                                    "host": [
+                                        "api",
+                                        "stripe",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        },
+                        {
+                            "name": "stripe Copy",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "REDACTED_STRIPE_SECRET_KEY",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "body": {
+                                    "mode": "urlencoded",
+                                    "urlencoded": [
+                                        {
+                                            "key": "payment_method_data[type]",
+                                            "value": "card",
+                                            "type": "text",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "payment_method_data[card][number]",
+                                            "value": "4242424242424242",
+                                            "type": "text",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "payment_method_data[card][exp_month]",
+                                            "value": "12",
+                                            "type": "text",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "payment_method_data[card][exp_year]",
+                                            "value": "2034",
+                                            "type": "text",
+                                            "disabled": false
+                                        },
+                                        {
+                                            "key": "payment_method_data[card][cvc]",
+                                            "value": "123",
+                                            "type": "text",
+                                            "disabled": false
+                                        }
+                                    ]
+                                },
+                                "header": [],
+                                "url": {
+                                    "raw": "https://api.stripe.com/v1/payment_intents/pi_3SFxv2RwqXYqDUmP0U1SsJ3v/confirm",
+                                    "path": [
+                                        "v1",
+                                        "payment_intents",
+                                        "pi_3SFxv2RwqXYqDUmP0U1SsJ3v",
+                                        "confirm"
+                                    ],
+                                    "host": [
+                                        "api",
+                                        "stripe",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        }
+                    ],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {}
+                },
+                {
+                    "name": "categories",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_f39120cd330fd760dc139d9509f02e4b2eedf3a2",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_446625012f0190865ee5a2c87c1bbd6d3edb6c62",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/wc/v3/products/categories",
+                            "path": [
+                                "wp-json",
+                                "wc",
+                                "v3",
+                                "products",
+                                "categories"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "products",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_f39120cd330fd760dc139d9509f02e4b2eedf3a2",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_446625012f0190865ee5a2c87c1bbd6d3edb6c62",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/wc/v3/products",
+                            "path": [
+                                "wp-json",
+                                "wc",
+                                "v3",
+                                "products"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "Products category",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/wc/store/v1/products/categories/1",
+                            "path": [
+                                "wp-json",
+                                "wc",
+                                "store",
+                                "v1",
+                                "products",
+                                "categories",
+                                "1"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "log in",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "noauth",
+                            "noauth": []
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    username : \"abc\",\r\n    password : \"abc.1223\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/jwt-auth/v1/token",
+                            "path": [
+                                "wp-json",
+                                "jwt-auth",
+                                "v1",
+                                "token"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "register",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "noauth",
+                            "noauth": []
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n    \"username\":\"test005\",\r\n    \"email\":\"test005@test005.com\",\r\n    \"passwrord\": \"abc@1234\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/custom-api/v1/register",
+                            "path": [
+                                "wp-json",
+                                "custom-api",
+                                "v1",
+                                "register"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "customers",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/wc/v3/customers/123",
+                            "path": [
+                                "wp-json",
+                                "wc",
+                                "v3",
+                                "customers",
+                                "123"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "shipments",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/shipments",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "shipments"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "shipments {id}",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/shipments/y002",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "shipments",
+                                "y002"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "shipments request",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n  \"package_type\": \"custom\",\r\n  \"description\": \"Sample shipment request\",\r\n  \"weight\": 1.2\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/shipments/request",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "shipments",
+                                "request"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "dashboard",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/dashboard",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "dashboard"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "sliders",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/sliders",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "sliders"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "track",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/track?number=AE023949010",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "track"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [
+                                {
+                                    "key": "number",
+                                    "value": "AE023949010",
+                                    "type": "string"
+                                }
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "notifications",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/notifications",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "notifications"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "markNotificationAsRead",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/notifications/1/read",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "notifications",
+                                "1",
+                                "read"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "change_password",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n  \"current_password\": \"my_old_password123\",\r\n  \"new_password\": \"my_new_password456\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/change_password",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "change_password"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "warehouse-addresses",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/warehouse-addresses",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "warehouse-addresses"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "privacy-policy page",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/wp/v2/pages?slug=privacy-policy",
+                            "path": [
+                                "wp-json",
+                                "wp",
+                                "v2",
+                                "pages"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [
+                                {
+                                    "key": "slug",
+                                    "value": "privacy-policy",
+                                    "type": "string"
+                                }
+                            ],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "settings",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "GET",
+                        "body": {},
+                        "header": [],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/settings",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "settings"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                },
+                {
+                    "name": "contact",
+                    "description": "",
+                    "event": [],
+                    "auth": {},
+                    "request": {
+                        "auth": {
+                            "type": "basic",
+                            "basic": [
+                                {
+                                    "key": "username",
+                                    "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                                    "type": "string"
+                                },
+                                {
+                                    "key": "password",
+                                    "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                                    "type": "string"
+                                }
+                            ]
+                        },
+                        "method": "POST",
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\r\n  \"name\": \"Test User\",\r\n  \"email\": \"test@example.com\",\r\n  \"message\": \"Need support with my shipment\"\r\n}",
+                            "options": {
+                                "raw": {
+                                    "language": "json"
+                                }
+                            }
+                        },
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/contact",
+                            "path": [
+                                "wp-json",
+                                "ezzy",
+                                "v1",
+                                "contact"
+                            ],
+                            "host": [
+                                "demo",
+                                "onlineezzy",
+                                "com"
+                            ],
+                            "protocol": "https",
+                            "query": [],
+                            "variable": []
+                        }
+                    },
+                    "response": [],
+                    "protocolProfileBehavior": {
+                        "strictSSL": false,
+                        "followRedirects": true
+                    }
+                }
+            ],
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                }
+            ],
+            "auth": {
+                "type": "basic",
+                "basic": [
+                    {
+                        "key": "username",
+                        "value": "ck_5ca575dad48fd87c2b7fae55a80096e14f90ff4f",
+                        "type": "string"
+                    },
+                    {
+                        "key": "password",
+                        "value": "cs_5d69ab19a7f8325b4d10e6a8687ed27ea5aa0768",
+                        "type": "string"
+                    }
+                ]
+            }
+        }
+    ],
+    "variable": [],
+    "event": [],
+    "auth": {
+        "type": "noauth",
+        "noauth": []
+    }
+}

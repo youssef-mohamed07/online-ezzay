@@ -1,7 +1,11 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
+import 'package:online_ezzy/core/api_service.dart';
+import 'package:online_ezzy/providers/shipment_provider.dart';
 import 'package:online_ezzy/views/screens/shipment_details_page.dart';
 import 'package:online_ezzy/views/screens/notifications_page.dart';
+import 'package:online_ezzy/views/screens/track_page.dart';
 
 class ShipmentsPage extends StatefulWidget {
   const ShipmentsPage({super.key});
@@ -11,7 +15,9 @@ class ShipmentsPage extends StatefulWidget {
 }
 
 class _ShipmentsPageState extends State<ShipmentsPage> {
-  String _selectedFilter = 'في المستودع'.tr;
+  String _selectedFilter = 'الكل'.tr;
+  final TextEditingController _searchController = TextEditingController();
+  late Future<int> _unreadNotificationsFuture;
 
   final List<String> _filters = [
     'الكل'.tr,
@@ -20,6 +26,76 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
     'في الطريق'.tr,
     'تم التسليم'.tr,
   ];
+
+  @override
+  void initState() {
+    super.initState();
+    _unreadNotificationsFuture = ApiService.getUnreadNotificationsCount();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<ShipmentProvider>().loadShipments();
+    });
+  }
+
+  void _refreshUnreadNotificationsCount() {
+    setState(() {
+      _unreadNotificationsFuture = ApiService.getUnreadNotificationsCount();
+    });
+  }
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  String _normalizeStatus(String raw) {
+    final value = raw.trim().toLowerCase();
+    if (value.contains('delivered') || value.contains('تم التسليم')) {
+      return 'تم التسليم'.tr;
+    }
+    if (value.contains('transit') || value.contains('shipping') || value.contains('في الطريق')) {
+      return 'في الطريق'.tr;
+    }
+    if (value.contains('warehouse') ||
+        value.contains('stored') ||
+        value.contains('في المستودع') ||
+        value.contains('في الصندوق') ||
+        value.contains('box')) {
+      return 'في المستودع'.tr;
+    }
+    if (value.contains('request') || value.contains('ordered') || value.contains('تم الطلب')) {
+      return 'تم الطلب'.tr;
+    }
+    return raw.isEmpty ? 'تم الطلب'.tr : raw;
+  }
+
+  String _shipmentStatusRaw(Map<String, dynamic> shipment) {
+    return (shipment['current_status'] ??
+            shipment['status'] ??
+            shipment['shipment_status'] ??
+            '')
+        .toString();
+  }
+
+  String _shipmentDateRaw(Map<String, dynamic> shipment) {
+    return (shipment['date_added'] ?? shipment['date'] ?? shipment['created_at'] ?? '')
+        .toString();
+  }
+
+  Color _statusColor(String status) {
+    final value = status.toLowerCase();
+    if (value.contains('تسليم')) return const Color(0xFF10B981);
+    if (value.contains('طريق')) return const Color(0xFFF59E0B);
+    if (value.contains('مستودع')) return const Color(0xFF3B82F6);
+    return const Color(0xFFE71D24);
+  }
+
+  int _statusStep(String status) {
+    final value = status.toLowerCase();
+    if (value.contains('تسليم')) return 3;
+    if (value.contains('طريق')) return 2;
+    return 1;
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -40,43 +116,54 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
               fontWeight: FontWeight.bold,
             ),
           ),
-          leading: Stack(
-            alignment: Alignment.center,
-            children: [
-              IconButton(
-                icon: Icon(
-                  Icons.notifications_none,
-                  color: Color(0xFF475569),
-                ),
-                onPressed: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => const NotificationsPage(),
+          leading: FutureBuilder<int>(
+            future: _unreadNotificationsFuture,
+            builder: (context, snapshot) {
+              final count = snapshot.data ?? 0;
+              return Stack(
+                alignment: Alignment.center,
+                children: [
+                  IconButton(
+                    icon: Icon(
+                      Icons.notifications_none,
+                      color: Color(0xFF475569),
                     ),
-                  );
-                },
-              ),
-              Positioned(
-                top: 12,
-                right: 12,
-                child: Container(
-                  padding: const EdgeInsets.all(4),
-                  decoration: const BoxDecoration(
-                    color: Color(0xFFE71D24),
-                    shape: BoxShape.circle,
+                    onPressed: () async {
+                      await Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => const NotificationsPage(),
+                        ),
+                      );
+                      _refreshUnreadNotificationsCount();
+                    },
                   ),
-                  child: Text(
-                    '2',
-                    style: TextStyle(
-                      color: Colors.white,
-                      fontSize: 8,
-                      fontWeight: FontWeight.bold,
+                  if (count > 0)
+                    Positioned(
+                      top: 12,
+                      right: 12,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 5,
+                          vertical: 2,
+                        ),
+                        decoration: const BoxDecoration(
+                          color: Color(0xFFE71D24),
+                          shape: BoxShape.circle,
+                        ),
+                        child: Text(
+                          count > 99 ? '99+' : '$count',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 8,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ),
-            ],
+                ],
+              );
+            },
           ),
           actions: [
             IconButton(
@@ -85,147 +172,172 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
             ),
           ],
         ),
-        body: Column(
-          children: [
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.only(bottom: 12),
-              child: SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: Row(
-                  children: _filters.map((filter) {
-                    final isSelected = _selectedFilter == filter;
-                    return Padding(
-                      padding: const EdgeInsets.only(left: 8.0),
-                      child: ChoiceChip(
-                        label: Text(
-                          filter,
-                          style: TextStyle(
-                            color: isSelected
-                                ? Colors.white
-                                : const Color(0xFF64748B),
-                            fontWeight: FontWeight.bold,
-                            fontSize: 13,
+        body: Consumer<ShipmentProvider>(
+          builder: (context, shipmentProvider, _) {
+            final allShipments = shipmentProvider.shipments;
+            final query = _searchController.text.trim().toLowerCase();
+
+            final filtered = allShipments.where((shipment) {
+              final tracking = (shipment['tracking_number'] ?? shipment['number'] ?? shipment['id'] ?? '').toString();
+              final title = (shipment['title'] ?? shipment['name'] ?? '').toString();
+              final status = _normalizeStatus(_shipmentStatusRaw(shipment));
+
+              final filterMatches = _selectedFilter == 'الكل'.tr || status == _selectedFilter;
+              final searchMatches =
+                  query.isEmpty ||
+                  tracking.toLowerCase().contains(query) ||
+                  title.toLowerCase().contains(query);
+
+              return filterMatches && searchMatches;
+            }).toList();
+
+            return Column(
+              children: [
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.only(bottom: 12),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: Row(
+                      children: _filters.map((filter) {
+                        final isSelected = _selectedFilter == filter;
+                        return Padding(
+                          padding: const EdgeInsets.only(left: 8.0),
+                          child: ChoiceChip(
+                            label: Text(
+                              filter,
+                              style: TextStyle(
+                                color: isSelected
+                                    ? Colors.white
+                                    : const Color(0xFF64748B),
+                                fontWeight: FontWeight.bold,
+                                fontSize: 13,
+                              ),
+                            ),
+                            selected: isSelected,
+                            onSelected: (selected) {
+                              if (selected) {
+                                setState(() => _selectedFilter = filter);
+                              }
+                            },
+                            showCheckmark: false,
+                            selectedColor: const Color(0xFFE71D24),
+                            backgroundColor: const Color(0xFFF1F5F9),
+                            side: BorderSide.none,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 4,
+                              vertical: 8,
+                            ),
                           ),
-                        ),
-                        selected: isSelected,
-                        onSelected: (selected) {
-                          if (selected) {
-                            setState(() => _selectedFilter = filter);
-                          }
-                        },
-                        showCheckmark: false,
-                        selectedColor: const Color(0xFFE71D24),
-                        backgroundColor: const Color(0xFFF1F5F9),
-                        side: BorderSide.none,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 4,
-                          vertical: 8,
-                        ),
-                      ),
-                    );
-                  }).toList(),
-                ),
-              ),
-            ),
-            Container(
-              color: Colors.white,
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-              child: TextField(
-                decoration: InputDecoration(
-                  hintText: 'ابحث برقم الشحنة'.tr,
-                  hintStyle: const TextStyle(
-                    color: Color(0xFF94A3B8),
-                    fontSize: 13,
-                  ),
-                  prefixIcon: Icon(
-                    Icons.search,
-                    color: Color(0xFF94A3B8),
-                    size: 20,
-                  ),
-                  filled: true,
-                  fillColor: const Color(0xFFF1F5F9),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-              ),
-            ),
-            Expanded(
-              child: ListView(
-                padding: const EdgeInsets.all(16),
-                children: [
-                  _buildShipmentCard(
-                    trackingNumber: '8742638',
-                    status: 'في المستودع'.tr,
-                    statusColor: const Color(0xFF3B82F6),
-                    imageUrl:
-                        'https://images.pexels.com/photos/6169056/pexels-photo-6169056.jpeg?auto=compress&cs=tinysrgb&w=300',
-                    step: 2,
-                    weight: '2.5',
-                    date: '12 مايو'.tr,
-                    buttonDisabled: false,
-                  ),
-                  SizedBox(height: 16),
-                  _buildShipmentCard(
-                    trackingNumber: '6654429',
-                    status: 'في الطريق'.tr,
-                    statusColor: const Color(0xFFF59E0B),
-                    imageUrl:
-                        'https://images.pexels.com/photos/4393665/pexels-photo-4393665.jpeg?auto=compress&cs=tinysrgb&w=300',
-                    step: 2,
-                    weight: '1.2',
-                    date: '9 مايو'.tr,
-                    buttonDisabled: false,
-                    isIconPlay: true,
-                  ),
-                  SizedBox(height: 16),
-                  _buildShipmentCard(
-                    trackingNumber: '9927715',
-                    status: 'تم التسليم'.tr,
-                    statusColor: const Color(0xFF10B981),
-                    imageUrl:
-                        'https://images.pexels.com/photos/4246119/pexels-photo-4246119.jpeg?auto=compress&cs=tinysrgb&w=300',
-                    step: 2,
-                    weight: '1.9',
-                    date: '9 مايو'.tr,
-                    buttonDisabled: true,
-                    isIconCheck: true,
-                  ),
-                  SizedBox(height: 32),
-                  Center(
-                    child: Column(
-                      children: [
-                        Text(
-                          'لا توجد شحنات حاليا'.tr,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF64748B),
-                          ),
-                        ),
-                        SizedBox(height: 6),
-                        Text(
-                          'ابدأ بطلب توصيل جديد'.tr,
-                          style: TextStyle(
-                            fontSize: 13,
-                            color: Color(0xFF94A3B8),
-                          ),
-                        ),
-                      ],
+                        );
+                      }).toList(),
                     ),
                   ),
-                  SizedBox(height: 80),
-                ],
-              ),
-            ),
-          ],
+                ),
+                Container(
+                  color: Colors.white,
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+                  child: TextField(
+                    controller: _searchController,
+                    onChanged: (_) => setState(() {}),
+                    decoration: InputDecoration(
+                      hintText: 'ابحث برقم الشحنة'.tr,
+                      hintStyle: const TextStyle(
+                        color: Color(0xFF94A3B8),
+                        fontSize: 13,
+                      ),
+                      prefixIcon: const Icon(
+                        Icons.search,
+                        color: Color(0xFF94A3B8),
+                        size: 20,
+                      ),
+                      filled: true,
+                      fillColor: const Color(0xFFF1F5F9),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 14),
+                    ),
+                  ),
+                ),
+                Expanded(
+                  child: shipmentProvider.isLoading && allShipments.isEmpty
+                      ? const Center(child: CircularProgressIndicator())
+                      : RefreshIndicator(
+                          onRefresh: shipmentProvider.loadShipments,
+                          child: filtered.isEmpty
+                              ? ListView(
+                                  children: [
+                                    const SizedBox(height: 80),
+                                    Center(
+                                      child: Column(
+                                        children: [
+                                          Text(
+                                            'لا توجد شحنات حاليا'.tr,
+                                            style: const TextStyle(
+                                              fontSize: 16,
+                                              fontWeight: FontWeight.bold,
+                                              color: Color(0xFF64748B),
+                                            ),
+                                          ),
+                                          const SizedBox(height: 6),
+                                          Text(
+                                            'ابدأ بطلب توصيل جديد'.tr,
+                                            style: const TextStyle(
+                                              fontSize: 13,
+                                              color: Color(0xFF94A3B8),
+                                            ),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : ListView.separated(
+                                  padding: const EdgeInsets.all(16),
+                                  itemCount: filtered.length,
+                                  separatorBuilder: (_, __) => const SizedBox(height: 16),
+                                  itemBuilder: (context, index) {
+                                    final shipment = filtered[index];
+                                    final tracking =
+                                        (shipment['tracking_number'] ??
+                                                shipment['number'] ??
+                                                shipment['id'] ??
+                                                '')
+                                            .toString();
+                                    final status = _normalizeStatus(
+                                      _shipmentStatusRaw(shipment),
+                                    );
+                                    final statusColor = _statusColor(status);
+                                    final step = _statusStep(status);
+                                    final imageUrl =
+                                        (shipment['image'] ?? shipment['image_url'] ?? '').toString();
+                                    final weight =
+                                        (shipment['weight'] ?? shipment['total_weight'] ?? '0').toString();
+                                    final date = _shipmentDateRaw(shipment);
+
+                                    return _buildShipmentCard(
+                                      trackingNumber: tracking,
+                                      status: status,
+                                      statusColor: statusColor,
+                                      imageUrl: imageUrl,
+                                      step: step,
+                                      weight: weight,
+                                      date: date,
+                                      buttonDisabled: status == 'تم التسليم'.tr,
+                                    );
+                                  },
+                                ),
+                        ),
+                ),
+              ],
+            );
+          },
         ),
       ),
     );
@@ -311,12 +423,25 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
               ),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: Image.network(
-                  imageUrl,
-                  width: 70,
-                  height: 70,
-                  fit: BoxFit.cover,
-                ),
+                child: imageUrl.isNotEmpty
+                    ? Image.network(
+                        imageUrl,
+                        width: 70,
+                        height: 70,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          width: 70,
+                          height: 70,
+                          color: const Color(0xFFF1F5F9),
+                          child: const Icon(Icons.inventory_2_outlined),
+                        ),
+                      )
+                    : Container(
+                        width: 70,
+                        height: 70,
+                        color: const Color(0xFFF1F5F9),
+                        child: const Icon(Icons.inventory_2_outlined),
+                      ),
               ),
             ],
           ),
@@ -328,7 +453,18 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
               SizedBox(
                 height: 36,
                 child: ElevatedButton(
-                  onPressed: buttonDisabled ? null : () {},
+                  onPressed: buttonDisabled
+                      ? null
+                      : () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => TrackPage(
+                                initialTrackingNumber: trackingNumber,
+                              ),
+                            ),
+                          );
+                        },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: buttonDisabled
                         ? const Color(0xFFE2E8F0)

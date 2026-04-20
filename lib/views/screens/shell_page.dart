@@ -20,12 +20,14 @@ class _ShellPageState extends State<ShellPage> {
   static const List<Widget> _pages = [
     HomePage(),
     ShipmentsPage(),
-    CartPage(), 
+    CartPage(),
     ProfilePage(),
   ];
 
   @override
   Widget build(BuildContext context) {
+    final bottomInset = MediaQuery.of(context).viewPadding.bottom;
+
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FA),
       body: AnimatedSwitcher(
@@ -38,7 +40,7 @@ class _ShellPageState extends State<ShellPage> {
         ),
       ),
       bottomNavigationBar: Container(
-        height: 70,
+        padding: EdgeInsets.only(bottom: bottomInset),
         decoration: BoxDecoration(
           color: Colors.white,
           boxShadow: [
@@ -49,61 +51,90 @@ class _ShellPageState extends State<ShellPage> {
             ),
           ],
         ),
-        child: Stack(
-          clipBehavior: Clip.none,
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                _BottomItem(icon: Icons.home_rounded, label: 'الرئيسية', active: _selectedIndex == 0, onTap: () => setState(() => _selectedIndex = 0)),
-                _BottomItem(icon: Icons.inventory_2_outlined, label: 'الشحنات', active: _selectedIndex == 1, onTap: () => setState(() => _selectedIndex = 1)),
-                SizedBox(width: 70), // Spacer for center FAB
-                _BottomItem(icon: Icons.shopping_cart_outlined, label: 'السلة'.tr, active: _selectedIndex == 2, onTap: () => setState(() => _selectedIndex = 2)),
-                _BottomItem(icon: Icons.person_outline_rounded, label: 'الملف'.tr, active: _selectedIndex == 3, onTap: () => setState(() => _selectedIndex = 3)),
-              ],
-            ),
-            Positioned(
-              top: -20,
-              left: 0,
-              right: 0,
-              child: Center(
-                child: GestureDetector(
-                  onTap: () {
-                    Navigator.of(context).push(
-                      MaterialPageRoute(builder: (_) => const PackagesPage()),
-                    );
-                  },
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Container(
-                        width: 56,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFFE71D24),
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 4),
-                          boxShadow: [
-                            BoxShadow(
-                              color: const Color(0xFFE71D24).withValues(alpha: 0.3),
-                              blurRadius: 10,
-                              offset: const Offset(0, 4),
-                            ),
-                          ],
+        child: SizedBox(
+          height: 70,
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _BottomItem(
+                    icon: Icons.home_rounded,
+                    label: 'الرئيسية',
+                    active: _selectedIndex == 0,
+                    onTap: () => setState(() => _selectedIndex = 0),
+                  ),
+                  _BottomItem(
+                    icon: Icons.inventory_2_outlined,
+                    label: 'الشحنات',
+                    active: _selectedIndex == 1,
+                    onTap: () => setState(() => _selectedIndex = 1),
+                  ),
+                  SizedBox(width: 70), // Spacer for center FAB
+                  _BottomItem(
+                    icon: Icons.shopping_cart_outlined,
+                    label: 'السلة'.tr,
+                    active: _selectedIndex == 2,
+                    onTap: () => setState(() => _selectedIndex = 2),
+                  ),
+                  _BottomItem(
+                    icon: Icons.person_outline_rounded,
+                    label: 'الملف'.tr,
+                    active: _selectedIndex == 3,
+                    onTap: () => setState(() => _selectedIndex = 3),
+                  ),
+                ],
+              ),
+              Positioned(
+                top: -20,
+                left: 0,
+                right: 0,
+                child: Center(
+                  child: GestureDetector(
+                    onTap: () {
+                      Navigator.of(context).push(
+                        MaterialPageRoute(builder: (_) => const PackagesPage()),
+                      );
+                    },
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Container(
+                          width: 56,
+                          height: 56,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFE71D24),
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 4),
+                            boxShadow: [
+                              BoxShadow(
+                                color: const Color(
+                                  0xFFE71D24,
+                                ).withValues(alpha: 0.3),
+                                blurRadius: 10,
+                                offset: const Offset(0, 4),
+                              ),
+                            ],
+                          ),
+                          child: Icon(Icons.add, color: Colors.white, size: 28),
                         ),
-                        child: Icon(Icons.add, color: Colors.white, size: 28),
-                      ),
-                      SizedBox(height: 6),
-                      Text(
-                        'اضف شحنة'.tr,
-                        style: TextStyle(fontSize: 10, fontWeight: FontWeight.normal, color: Color(0xFF94A3B8)),
-                      ),
-                    ],
+                        SizedBox(height: 6),
+                        Text(
+                          'اضف شحنة'.tr,
+                          style: TextStyle(
+                            fontSize: 10,
+                            fontWeight: FontWeight.normal,
+                            color: Color(0xFF94A3B8),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
@@ -144,7 +175,9 @@ class _BottomItem extends StatelessWidget {
               style: TextStyle(
                 fontSize: 10,
                 fontWeight: active ? FontWeight.bold : FontWeight.normal,
-                color: active ? const Color(0xFFE71D24) : const Color(0xFF64748B),
+                color: active
+                    ? const Color(0xFFE71D24)
+                    : const Color(0xFF64748B),
               ),
             ),
           ],

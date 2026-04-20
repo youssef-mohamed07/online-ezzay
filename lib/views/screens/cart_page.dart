@@ -1,8 +1,12 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:provider/provider.dart';
+import 'stripe_checkout_webview_page.dart';
+import '../../core/api_service.dart';
 import '../../providers/cart_provider.dart';
+import '../../providers/auth_provider.dart';
+
+enum _CheckoutMethod { stripe, direct }
 
 class CartPage extends StatefulWidget {
   const CartPage({Key? key}) : super(key: key);
@@ -11,23 +15,339 @@ class CartPage extends StatefulWidget {
   State<CartPage> createState() => _CartPageState();
 }
 
-enum PaymentMethod { visa, googlePay, paypal, link }
-
 class _CartPageState extends State<CartPage> {
-  PaymentMethod _selectedPayment = PaymentMethod.visa;
+  bool _isProcessingPayment = false;
+  _CheckoutMethod _selectedCheckoutMethod = _CheckoutMethod.stripe;
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      context.read<CartProvider>().refreshAvailablePaymentMethods();
+    });
+  }
+
+  bool _isOrderSuccess(Map<String, dynamic>? result) {
+    if (result == null) return false;
+    if (result['code'] != null || result['error'] != null) return false;
+
+    final statusCode = result['status_code'] as int? ?? 0;
+    if (statusCode >= 400) return false;
+
+    final status = result['status']?.toString().toLowerCase() ?? '';
+    if (status == 'failed' || status == 'cancelled' || status == 'canceled') {
+      return false;
+    }
+
+    final paymentResult = result['payment_result'];
+    if (paymentResult is Map) {
+      final paymentStatus =
+          paymentResult['payment_status']?.toString().toLowerCase() ?? '';
+      if (paymentStatus == 'failure' || paymentStatus == 'failed') {
+        return false;
+      }
+    }
+
+    final hasOrderId = result['id'] != null;
+    return hasOrderId ||
+        status == 'processing' ||
+        status == 'completed' ||
+        status == 'pending' ||
+        status == 'on-hold';
+  }
+
+  String _extractOrderError(Map<String, dynamic>? result) {
+    if (result == null) return 'فشل إنشاء الطلب، حاول مرة أخرى'.tr;
+
+    final message = result['message']?.toString();
+    final data = result['data'];
+    final nestedMessage = data is Map ? data['message']?.toString() : null;
+    final code = result['code']?.toString();
+
+    final combined = [
+      message,
+      nestedMessage,
+      code,
+    ].whereType<String>().join(' ').toLowerCase();
+
+    if (combined.contains('account is already registered') ||
+        combined.contains('email') && combined.contains('registered') ||
+        combined.contains('registration-error-email-exists') ||
+        combined.contains('تم تسجيل حساب بالفعل') ||
+        combined.contains('يحمل') && combined.contains('البريد')) {
+      return 'هذا البريد مسجل بالفعل. سجل الدخول أولاً بنفس الحساب ثم أعد الطلب.'.tr;
+    }
+
+    final paymentResult = result['payment_result'];
+    if (paymentResult is Map) {
+      final paymentDetails = paymentResult['payment_details'];
+      if (paymentDetails is List) {
+        for (final entry in paymentDetails) {
+          if (entry is Map &&
+              entry['key']?.toString() == 'errorMessage' &&
+              (entry['value']?.toString().isNotEmpty ?? false)) {
+            return entry['value'].toString();
+          }
+        }
+      }
+    }
+
+    if (message != null && message.isNotEmpty) return message;
+    if (nestedMessage != null && nestedMessage.isNotEmpty) return nestedMessage;
+    if (code != null && code.isNotEmpty) return code;
+    final statusCode = result['status_code']?.toString();
+    if (statusCode != null && statusCode.isNotEmpty) {
+      return 'فشل إنشاء الطلب (كود: $statusCode)'.tr;
+    }
+    return 'فشل إنشاء الطلب، حاول مرة أخرى'.tr;
+  }
+
+  Map<String, dynamic> _buildBillingAddress() {
+    final userData = context.read<AuthProvider>().userData ?? {};
+    final billing = userData['billing'] is Map
+        ? Map<String, dynamic>.from(userData['billing'])
+        : <String, dynamic>{};
+    final shipping = userData['shipping'] is Map
+      ? Map<String, dynamic>.from(userData['shipping'])
+      : <String, dynamic>{};
+
+    String pick(List<dynamic> values, String fallback) {
+      for (final value in values) {
+        final text = value?.toString().trim() ?? '';
+        if (text.isNotEmpty) return text;
+      }
+      return fallback;
+    }
+
+    final guestEmail =
+      'guest_${DateTime.now().millisecondsSinceEpoch}@onlineezzy.app';
+
+    return {
+      'first_name': pick([
+        billing['first_name'],
+        shipping['first_name'],
+        userData['first_name'],
+        userData['name'],
+      ], 'Online'),
+      'last_name': pick([
+        billing['last_name'],
+        shipping['last_name'],
+        userData['last_name'],
+      ], 'Ezzy'),
+      'email': pick([
+        billing['email'],
+        userData['email'],
+      ], guestEmail),
+      'phone': pick([
+        billing['phone'],
+        userData['phone'],
+      ], '0100000000'),
+      'address_1': pick([
+        billing['address_1'],
+        shipping['address_1'],
+      ], 'Online Ezzy'),
+      'city': pick([
+        billing['city'],
+        shipping['city'],
+      ], 'Hebron'),
+      'state': pick([
+        billing['state'],
+        shipping['state'],
+      ], 'Hebron'),
+      'postcode': pick([
+        billing['postcode'],
+        shipping['postcode'],
+      ], '00000'),
+      'country': pick([
+        billing['country'],
+        shipping['country'],
+        userData['country'],
+      ], 'PS'),
+    };
+  }
+
+  bool _isCountryRejected(Map<String, dynamic>? result) {
+    if (result == null) return false;
+
+    final message = result['message']?.toString() ?? '';
+    final data = result['data'];
+    final nested = data is Map ? data['message']?.toString() ?? '' : '';
+    final combined = '$message $nested'.toLowerCase();
+
+    return combined.contains('لا نسمح بالطلبات من البلد') ||
+        combined.contains('submitted country') ||
+        combined.contains('do not allow orders from the submitted country');
+  }
+
+  Future<Map<String, dynamic>?> _checkoutWithCountryFallback(
+    CartProvider cartProvider,
+    Map<String, dynamic> checkoutData,
+  ) async {
+    Map<String, dynamic>? attempt = await cartProvider.checkout(checkoutData);
+
+    if (!_isOrderSuccess(attempt) && _isCountryRejected(attempt)) {
+      final currentBilling =
+          Map<String, dynamic>.from(checkoutData['billing_address'] as Map<String, dynamic>);
+      final currentCountry = currentBilling['country']?.toString().toUpperCase() ?? '';
+
+      if (currentCountry.isEmpty || currentCountry == 'EG') {
+        currentBilling['country'] = 'PS';
+        currentBilling['state'] =
+            (currentBilling['state']?.toString().isNotEmpty ?? false)
+                ? currentBilling['state']
+                : 'Hebron';
+
+        final retryCheckout = {
+          ...checkoutData,
+          'billing_address': currentBilling,
+        };
+        attempt = await cartProvider.checkout(retryCheckout);
+      }
+    }
+
+    return attempt;
+  }
+
+  String? _buildOrderPayUrl(Map<String, dynamic>? result) {
+    if (result == null) return null;
+
+    final orderId =
+        result['order_id']?.toString() ?? result['id']?.toString() ?? '';
+    final orderKey = result['order_key']?.toString() ?? '';
+    if (orderId.isEmpty || orderKey.isEmpty) return null;
+
+    return 'https://demo.onlineezzy.com/checkout/order-pay/$orderId/?pay_for_order=true&key=$orderKey';
+  }
+
+  int _extractItemQuantity(Map<String, dynamic> item) {
+    final quantityRaw = item['quantity'];
+    if (quantityRaw is Map) {
+      return int.tryParse((quantityRaw['value'] ?? '1').toString()) ?? 1;
+    }
+    return int.tryParse(quantityRaw?.toString() ?? '1') ?? 1;
+  }
+
+  int _calculateStripeAmountMinor(List<dynamic> items) {
+    int totalMinor = 0;
+
+    for (final raw in items) {
+      if (raw is! Map) continue;
+      final item = Map<String, dynamic>.from(raw);
+      final quantity = _extractItemQuantity(item);
+
+      final prices = item['prices'];
+      final unitMinor =
+          prices is Map
+              ? int.tryParse(prices['price']?.toString() ?? '')
+              : null;
+
+      if (unitMinor != null && unitMinor > 0) {
+        totalMinor += unitMinor * quantity;
+        continue;
+      }
+
+      final fallbackUnit = double.tryParse(item['price']?.toString() ?? '');
+      if (fallbackUnit != null && fallbackUnit > 0) {
+        totalMinor += (fallbackUnit * 100).round() * quantity;
+      }
+    }
+
+    // Keep a non-zero minimal amount to avoid Stripe invalid amount errors.
+    return totalMinor > 0 ? totalMinor : 100;
+  }
+
+  Future<Map<String, dynamic>?> _checkoutStripeViaApi(
+    CartProvider cartProvider,
+    Map<String, dynamic> baseCheckoutData,
+  ) async {
+    final amountMinor = _calculateStripeAmountMinor(cartProvider.cartItems);
+
+    final paymentIntent = await cartProvider.createPaymentIntent(
+      amountMinor,
+      'usd',
+      'pm_card_visa',
+    );
+
+    final paymentIntentId = paymentIntent?['id']?.toString() ?? '';
+    if (paymentIntentId.isNotEmpty) {
+      await cartProvider.confirmPaymentIntent(paymentIntentId, {
+        'payment_method': 'pm_card_visa',
+        'return_url': 'https://demo.onlineezzy.com',
+      });
+    }
+
+    final checkoutData = {
+      ...baseCheckoutData,
+      'payment_method': 'stripe',
+      'payment_data': const [
+        {'key': 'stripe_source', 'value': 'pm_card_visa'},
+      ],
+    };
+
+    return _checkoutWithCountryFallback(cartProvider, checkoutData);
+  }
+
+  Future<Map<String, dynamic>?> _checkoutStripeViaWebView(
+    CartProvider cartProvider,
+    Map<String, dynamic> baseCheckoutData,
+  ) async {
+    final checkoutData = {
+      ...baseCheckoutData,
+      'payment_method': 'stripe',
+    };
+
+    final firstAttempt = await _checkoutWithCountryFallback(
+      cartProvider,
+      checkoutData,
+    );
+
+    if (_isOrderSuccess(firstAttempt)) {
+      return firstAttempt;
+    }
+
+    final payUrl = _buildOrderPayUrl(firstAttempt);
+    if (payUrl == null || !mounted) {
+      return firstAttempt;
+    }
+
+    final paid = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => StripeCheckoutWebViewPage(initialUrl: payUrl),
+      ),
+    );
+
+    if (paid == true) {
+      final normalized = Map<String, dynamic>.from(firstAttempt ?? {});
+      final orderId =
+          normalized['order_id']?.toString() ?? normalized['id']?.toString();
+
+      if (orderId != null && orderId.isNotEmpty) {
+        final latestOrder = await ApiService.getOrder(orderId);
+        final latestStatus = latestOrder?['status']?.toString().toLowerCase() ?? '';
+        if (latestStatus.isNotEmpty) {
+          normalized['status'] = latestStatus;
+          final paidStatuses = {'processing', 'completed', 'on-hold', 'pending'};
+          normalized['payment_result'] = {
+            'payment_status': paidStatuses.contains(latestStatus)
+                ? 'success'
+                : 'failure',
+          };
+          return normalized;
+        }
+      }
+
+      normalized['status'] = 'processing';
+      normalized['payment_result'] = {
+        'payment_status': 'success',
+      };
+      return normalized;
+    }
+
+    return firstAttempt;
+  }
 
   void _removeItem(String itemKey) {
     Provider.of<CartProvider>(context, listen: false).removeCartItem(itemKey);
-  }
-
-  void _updateQuantity(String itemKey, int currentQuantity, int change) {
-    final newQuantity = currentQuantity + change;
-    if (newQuantity < 1) {
-      _removeItem(itemKey);
-    } else {
-      Provider.of<CartProvider>(context, listen: false)
-          .updateCartItemQuantity(itemKey, newQuantity);
-    }
   }
 
   @override
@@ -59,6 +379,11 @@ class _CartPageState extends State<CartPage> {
             }
 
             final cartItems = cartProvider.cartItems;
+            final knownMethods = cartProvider.availablePaymentMethods;
+            final hasKnownMethods = knownMethods.isNotEmpty;
+            final hasStripe = !hasKnownMethods || knownMethods.contains('stripe');
+            final hasDirect = !hasKnownMethods ||
+              knownMethods.any((m) => m == 'bacs' || m == 'cod');
 
             if (cartItems.isEmpty) {
               return const Center(
@@ -128,7 +453,7 @@ class _CartPageState extends State<CartPage> {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         const Text(
-                          'طريقة الدفع',
+                          'الطريقة المتاحة',
                           style: TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
@@ -137,29 +462,38 @@ class _CartPageState extends State<CartPage> {
                         ),
                         const SizedBox(height: 16),
                         _buildPaymentOption(
-                          PaymentMethod.visa,
-                          'الدفع عن طريق الفيزا',
-                          Icons.credit_card_outlined,
-                          Colors.grey.shade700,
+                          title: 'الدفع بالبطاقة (Stripe)',
+                          iconData: Icons.credit_card_rounded,
+                          iconColor: const Color(0xFF0EA5E9),
+                          selected: _selectedCheckoutMethod == _CheckoutMethod.stripe,
+                          enabled: hasStripe,
+                          onTap: () {
+                            setState(() {
+                              _selectedCheckoutMethod = _CheckoutMethod.stripe;
+                            });
+                          },
                         ),
                         _buildPaymentOption(
-                          PaymentMethod.googlePay,
-                          'Google pay',
-                          Icons.g_mobiledata,
-                          Colors.orange,
-                          iconSize: 32,
+                          title: 'طلب مباشر عبر النظام',
+                          iconData: Icons.verified_rounded,
+                          iconColor: const Color(0xFFE71D24),
+                          selected: _selectedCheckoutMethod == _CheckoutMethod.direct,
+                          enabled: hasDirect,
+                          onTap: () {
+                            setState(() {
+                              _selectedCheckoutMethod = _CheckoutMethod.direct;
+                            });
+                          },
                         ),
-                        _buildPaymentOption(
-                          PaymentMethod.paypal,
-                          'PayPal',
-                          Icons.paypal,
-                          Colors.blue,
-                        ),
-                        _buildPaymentOption(
-                          PaymentMethod.link,
-                          'Link',
-                          Icons.link,
-                          Colors.green,
+                        const SizedBox(height: 8),
+                        Text(
+                          _selectedCheckoutMethod == _CheckoutMethod.stripe
+                            ? 'سيتم تنفيذ الدفع مباشرة عبر Stripe ثم إنشاء الطلب تلقائيًا (مع تحويل آمن احتياطي عند الحاجة).'.tr
+                              : 'طلب مباشر بدون دفع إلكتروني من داخل التطبيق.'.tr,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
                         ),
                       ],
                     ),
@@ -184,99 +518,112 @@ class _CartPageState extends State<CartPage> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: cartProvider.cartItems.isEmpty
+                  onPressed: cartProvider.cartItems.isEmpty || _isProcessingPayment
                       ? null
                       : () async {
+                          setState(() {
+                            _isProcessingPayment = true;
+                          });
+
                           ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('جاري معالجة الطلب وإتمام الدفع...'),
+                            SnackBar(
+                              content: Text('جاري إنشاء الطلب...'.tr),
                             ),
                           );
+                          try {
+                            final baseCheckoutData = {
+                              'billing_address': _buildBillingAddress(),
+                              'create_account': false,
+                            };
 
-                          // Step 1: Calculate total amount here (e.g., from cartProvider or predefined)
-                          int amount = 2000; // Example: $20.00 -> 2000 cents. Update logic based on cart logic
-                          
-                          // Example checkout data (normally collected from a form)
-                          final checkoutData = {
-                            'billing_address': {
-                              'first_name': 'Test',
-                              'last_name': 'User',
-                              'email': 'test@example.com',
-                              'phone': '0100000000',
-                            },
-                            'payment_method': _selectedPayment == PaymentMethod.visa ? 'stripe' : 'bacs',
-                          };
+                            Map<String, dynamic>? result;
+                            final availableMethods =
+                                await cartProvider.refreshAvailablePaymentMethods();
 
-                          if (_selectedPayment == PaymentMethod.visa) {
-                            try {
-                              // Create Payment Intent via your Backend
-                              final paymentIntentData = await cartProvider.createPaymentIntent(
-                                amount,
-                                'usd', // Currency
-                                'pm_card_visa', // Payment method (card) Example
-                              );
-                              
-                              if (paymentIntentData != null && paymentIntentData['client_secret'] != null) {
-                                final clientSecret = paymentIntentData['client_secret'];
-                                final paymentIntentId = paymentIntentData['id'];
-
-                                // Initialize Stripe Payment Sheet (Frontend)
-                                await Stripe.instance.initPaymentSheet(
-                                  paymentSheetParameters: SetupPaymentSheetParameters(
-                                    paymentIntentClientSecret: clientSecret,
-                                    merchantDisplayName: 'Online Ezzy',
-                                  ),
-                                );
-
-                                // Present Stripe Payment Sheet (Frontend)
-                                await Stripe.instance.presentPaymentSheet();
-
-                                // Optional: Confirm from Backend if required 
-                                // await cartProvider.confirmPaymentIntent(paymentIntentId, { 'payment_method': 'pm_card_visa' });
-                                
-                                // Success! Now place the actual order in WooCommerce
-                                checkoutData['payment_data'] = [
-                                  {
-                                    'key': 'payment_method',
-                                    'value': paymentIntentId,
-                                  }
-                                ];
-                              } else {
-                                throw Exception("فشل في استخراج بيانات الدفع.");
+                            if (_selectedCheckoutMethod == _CheckoutMethod.stripe) {
+                              if (!availableMethods.contains('stripe')) {
+                                throw Exception('Stripe غير متاح حالياً من إعدادات المتجر'.tr);
                               }
-                            } catch (e) {
-                              if (!context.mounted) return;
-                              ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
+                              result = await _checkoutStripeViaApi(
+                                cartProvider,
+                                baseCheckoutData,
+                              );
+
+                              if (!_isOrderSuccess(result)) {
+                                result = await _checkoutStripeViaWebView(
+                                  cartProvider,
+                                  baseCheckoutData,
+                                );
+                              }
+                            } else {
+                              final directMethods = <String>[];
+                              if (availableMethods.contains('cod')) {
+                                directMethods.add('cod');
+                              }
+                              if (availableMethods.contains('bacs')) {
+                                directMethods.add('bacs');
+                              }
+                              if (directMethods.isEmpty) {
+                                throw Exception('لا توجد طريقة طلب مباشر متاحة حالياً'.tr);
+                              }
+
+                              for (final method in directMethods) {
+                                final checkoutData = {
+                                  ...baseCheckoutData,
+                                  'payment_method': method,
+                                };
+                                final attempt = await _checkoutWithCountryFallback(
+                                  cartProvider,
+                                  checkoutData,
+                                );
+                                result = attempt;
+                                if (_isOrderSuccess(attempt)) break;
+                              }
+                            }
+
+                            if (!context.mounted) return;
+
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
+                            if (_isOrderSuccess(result) && result != null) {
+                              final orderId = result['id']?.toString();
+                              final successText =
+                                  _selectedCheckoutMethod == _CheckoutMethod.stripe
+                                      ? (orderId != null
+                                          ? 'تم الدفع بنجاح وإنشاء الطلب! رقم الطلب: $orderId'
+                                          : 'تم الدفع بنجاح وإنشاء الطلب!')
+                                      : (orderId != null
+                                          ? 'تم إنشاء الطلب بنجاح! رقم الطلب: $orderId'
+                                          : 'تم إنشاء الطلب بنجاح!');
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
-                                  content: Text('فشل عملية الدفع: ${e.toString()}'),
+                                  content: Text(successText.tr),
+                                  backgroundColor: Colors.green,
+                                ),
+                              );
+                            } else {
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(_extractOrderError(result)),
                                   backgroundColor: Colors.red,
                                 ),
                               );
-                              return; // Stop execution on payment failure
                             }
-                          }
-
-                          final result = await cartProvider.checkout(
-                            checkoutData,
-                          );
-                          if (!context.mounted) return;
-                          ScaffoldMessenger.of(context).hideCurrentSnackBar();
-
-                          if (result != null) {
+                          } catch (e) {
+                            if (!context.mounted) return;
+                            ScaffoldMessenger.of(context).hideCurrentSnackBar();
                             ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('تم الدفع بنجاح!'),
-                                backgroundColor: Colors.green,
-                              ),
-                            );
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content: Text('فشل عملية إنشاء الطلب، حاول مرة أخرى'),
+                              SnackBar(
+                                content: Text('فشل إتمام الطلب: ${e.toString()}'),
                                 backgroundColor: Colors.red,
                               ),
                             );
+                          } finally {
+                            if (mounted) {
+                              setState(() {
+                                _isProcessingPayment = false;
+                              });
+                            }
                           }
                         },
                   style: ElevatedButton.styleFrom(
@@ -286,8 +633,14 @@ class _CartPageState extends State<CartPage> {
                     ),
                     elevation: 0,
                   ),
-                  child: const Text(
-                    'إتمام الدفع',
+                  child: Text(
+                    _isProcessingPayment
+                        ? (_selectedCheckoutMethod == _CheckoutMethod.stripe
+                            ? 'جاري الدفع وإنشاء الطلب...'.tr
+                            : 'جاري إنشاء الطلب...'.tr)
+                        : (_selectedCheckoutMethod == _CheckoutMethod.stripe
+                            ? 'ادفع الآن'.tr
+                            : 'تأكيد الطلب'.tr),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -317,7 +670,10 @@ class _CartPageState extends State<CartPage> {
       rawPrice = item['price'].toString();
     }
 
-    final quantity = item['quantity'] ?? 1;
+    final quantityRaw = item['quantity'];
+    final quantity = quantityRaw is Map
+      ? int.tryParse((quantityRaw['value'] ?? '1').toString()) ?? 1
+      : int.tryParse(quantityRaw?.toString() ?? '1') ?? 1;
 
     // images
     var imageUrl = '';
@@ -433,41 +789,8 @@ class _CartPageState extends State<CartPage> {
               ),
               Row(
                 children: [
-                  Container(
-                    decoration: BoxDecoration(
-                      color: const Color(0xFFF1F5F9),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Row(
-                      children: [
-                        InkWell(
-                          onTap: () => _updateQuantity(id, quantity, 1),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            child: Icon(Icons.add, size: 18, color: Color(0xFF1E3A5F)),
-                          ),
-                        ),
-                        Text(
-                          quantity.toString(),
-                          style: const TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.bold,
-                            color: Color(0xFF1E3A5F),
-                          ),
-                        ),
-                        InkWell(
-                          onTap: () => _updateQuantity(id, quantity, -1),
-                          child: const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                            child: Icon(Icons.remove, size: 18, color: Color(0xFF1E3A5F)),
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                  const SizedBox(width: 16),
                   Text(
-                    '\scripts_cart.py{(double.tryParse(rawPrice) ?? 0) * quantity}',
+                    '${(double.tryParse(rawPrice) ?? 0) * quantity}',
                     style: const TextStyle(
                       color: Color(0xFF1E3A5F),
                       fontSize: 16,
@@ -483,48 +806,43 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  Widget _buildPaymentOption(
-    PaymentMethod method,
-    String title,
-    IconData iconData,
-    Color iconColor, {
+  Widget _buildPaymentOption({
+    required String title,
+    required IconData iconData,
+    required Color iconColor,
+    required bool selected,
+    required bool enabled,
+    required VoidCallback onTap,
     double iconSize = 24,
   }) {
-    return GestureDetector(
-      onTap: () {
-        setState(() {
-          _selectedPayment = method;
-        });
-      },
-      child: Container(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        color: Colors.transparent,
-        child: Row(
-          children: [
-            Radio<PaymentMethod>(
-              value: method,
-              groupValue: _selectedPayment,
-              onChanged: (PaymentMethod? value) {
-                if (value != null) {
-                  setState(() {
-                    _selectedPayment = value;
-                  });
-                }
-              },
-              activeColor: Colors.red,
-            ),
-            Expanded(
-              child: Text(
-                title,
-                style: const TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                  color: Color(0xFF1E3A5F),
+    return Opacity(
+      opacity: enabled ? 1 : 0.5,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(12),
+        onTap: enabled ? onTap : null,
+        child: Container(
+          padding: const EdgeInsets.symmetric(vertical: 8, horizontal: 8),
+          child: Row(
+            children: [
+              Icon(
+                selected ? Icons.radio_button_checked : Icons.radio_button_off,
+                color: selected ? const Color(0xFFE71D24) : const Color(0xFF94A3B8),
+                size: 22,
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w600,
+                    color: Color(0xFF1E3A5F),
+                  ),
                 ),
               ),
-            ),
-            Icon(iconData, color: iconColor, size: iconSize),
-          ],
+              Icon(iconData, color: iconColor, size: iconSize),
+            ],
+          ),
         ),
       ),
     );

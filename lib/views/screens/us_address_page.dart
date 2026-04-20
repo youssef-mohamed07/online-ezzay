@@ -1,5 +1,8 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
+import 'package:online_ezzy/core/api_service.dart';
+
+import 'contact_us_page.dart';
 
 class UsAddressPage extends StatefulWidget {
   const UsAddressPage({Key? key}) : super(key: key);
@@ -13,6 +16,49 @@ class _UsAddressPageState extends State<UsAddressPage> {
   String? _deliverTo;
   String? _service;
   String _weightUnit = 'كجم'.tr;
+  bool _isSubmitting = false;
+
+  Future<void> _submitAddressRequest() async {
+    if (_shipFrom == null || _deliverTo == null || _service == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('من فضلك أكمل بيانات الشحنة أولاً')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final response = await ApiService.contactUs({
+      'name': 'طلب عنوان امريكي',
+      'email': 'address.request@onlineezzy.app',
+      'message':
+          'طلب الحصول على عنوان امريكي وإتمام الدفع.\nالشحن من: $_shipFrom\nالتسليم إلى: $_deliverTo\nالخدمة: $_service\nوحدة الوزن: $_weightUnit',
+    });
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (response != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم إرسال الطلب بنجاح. تواصل معنا لإتمام الدفع.'),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'تعذر إرسال الطلب الآن. يمكنك التواصل مباشرة لإتمام الدفع.',
+          ),
+        ),
+      );
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ContactUsPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -122,8 +168,18 @@ class _UsAddressPageState extends State<UsAddressPage> {
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: const [
-                                Icon(Icons.unfold_more, color: Colors.grey, size: 20),
-                                Text('1', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                                Icon(
+                                  Icons.unfold_more,
+                                  color: Colors.grey,
+                                  size: 20,
+                                ),
+                                Text(
+                                  '1',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
                               ],
                             ),
                           ),
@@ -135,7 +191,8 @@ class _UsAddressPageState extends State<UsAddressPage> {
                             hint: 'كجم'.tr,
                             value: _weightUnit,
                             items: ['كجم'.tr, 'باوند'.tr],
-                            onChanged: (val) => setState(() => _weightUnit = val ?? 'كجم'.tr),
+                            onChanged: (val) =>
+                                setState(() => _weightUnit = val ?? 'كجم'.tr),
                           ),
                         ),
                       ],
@@ -146,9 +203,7 @@ class _UsAddressPageState extends State<UsAddressPage> {
                       width: double.infinity,
                       height: 50,
                       child: ElevatedButton(
-                        onPressed: () {
-                          // إتمام الإجراء
-                        },
+                        onPressed: _isSubmitting ? null : _submitAddressRequest,
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           shape: RoundedRectangleBorder(
@@ -156,14 +211,23 @@ class _UsAddressPageState extends State<UsAddressPage> {
                           ),
                           elevation: 0,
                         ),
-                        child: Text(
-                          'احصل على العنوان وادفع الآن'.tr,
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
-                        ),
+                        child: _isSubmitting
+                            ? const SizedBox(
+                                width: 20,
+                                height: 20,
+                                child: CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                ),
+                              )
+                            : Text(
+                                'احصل على العنوان وادفع الآن'.tr,
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.bold,
+                                  color: Colors.white,
+                                ),
+                              ),
                       ),
                     ),
                   ],
@@ -207,7 +271,10 @@ class _UsAddressPageState extends State<UsAddressPage> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           isExpanded: true,
-          hint: Text(hint, style: TextStyle(color: Colors.grey.shade400, fontSize: 14)),
+          hint: Text(
+            hint,
+            style: TextStyle(color: Colors.grey.shade400, fontSize: 14),
+          ),
           value: value,
           icon: Icon(Icons.keyboard_arrow_down, color: Colors.black),
           items: items.map((String item) {

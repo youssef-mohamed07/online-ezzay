@@ -14,26 +14,82 @@ class _EditProfilePageState extends State<EditProfilePage> {
   final _fullNameController = TextEditingController();
   final _emailController = TextEditingController();
   final _phoneController = TextEditingController();
+  bool _didPrefill = false;
 
   @override
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
       final auth = Provider.of<AuthProvider>(context, listen: false);
-      if (auth.userData != null) {
-        final firstName = auth.userData!['first_name'] ?? '';
-        final lastName = auth.userData!['last_name'] ?? '';
-        _fullNameController.text = '$firstName $lastName'.trim();
-        
-        _emailController.text = auth.userData!['email'] ?? '';
-        
-        // Sometimes WooCommerce stores phone in billing
-        final billing = auth.userData!['billing'];
-        if (billing != null && billing is Map) {
-          _phoneController.text = billing['phone'] ?? '';
-        }
-      }
+      _prefillControllers(auth);
     });
+  }
+
+  void _prefillControllers(AuthProvider auth) {
+    final user = auth.userData;
+    if (user == null) return;
+
+    final resolvedName = _normalizeName(auth.displayName, auth.isAuthenticated);
+    final resolvedEmail = _normalizeEmail(auth.primaryEmail);
+    final resolvedPhone = _extractPhone(user);
+
+    if (_fullNameController.text.trim().isEmpty && resolvedName.isNotEmpty) {
+      _fullNameController.text = resolvedName;
+    }
+    if (_emailController.text.trim().isEmpty && resolvedEmail.isNotEmpty) {
+      _emailController.text = resolvedEmail;
+    }
+    if (_phoneController.text.trim().isEmpty && resolvedPhone.isNotEmpty) {
+      _phoneController.text = resolvedPhone;
+    }
+
+    _didPrefill = true;
+  }
+
+  String _normalizeName(String value, bool isAuthenticated) {
+    final text = value.trim();
+    if (text.isEmpty) return '';
+    if (text == 'مستخدم') return '';
+    if (!isAuthenticated && text == 'ضيف') return '';
+    return text;
+  }
+
+  String _normalizeEmail(String value) {
+    final text = value.trim();
+    if (text.isEmpty || text == 'غير متوفر') return '';
+    return text;
+  }
+
+  String _extractPhone(Map<String, dynamic> user) {
+    final directPhone = user['phone']?.toString().trim() ?? '';
+    if (directPhone.isNotEmpty && directPhone.toLowerCase() != 'null') {
+      return directPhone;
+    }
+
+    final billing = user['billing'];
+    if (billing is Map) {
+      final billingPhone = billing['phone']?.toString().trim() ?? '';
+      if (billingPhone.isNotEmpty && billingPhone.toLowerCase() != 'null') {
+        return billingPhone;
+      }
+    }
+
+    return '';
+  }
+
+  String? _resolveUserId(Map<String, dynamic>? user) {
+    if (user == null) return null;
+    final rawId =
+        user['id'] ??
+        user['user_id'] ??
+        user['ID'] ??
+        (user['data'] is Map ? user['data']['id'] : null);
+    final id = rawId?.toString().trim();
+    if (id == null || id.isEmpty || id.toLowerCase() == 'null') {
+      return null;
+    }
+    return id;
   }
 
   @override
@@ -46,14 +102,24 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
   Future<void> _updateProfile() async {
     final auth = Provider.of<AuthProvider>(context, listen: false);
-    if (auth.userData == null || auth.userData!['id'] == null) return;
-    
-    final userId = auth.userData!['id'].toString();
-    
-    final nameParts = _fullNameController.text.trim().split(' ');
+    final userId = _resolveUserId(auth.userData);
+    if (userId == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تعذر تحديد رقم المستخدم، أعد تسجيل الدخول'),
+        ),
+      );
+      return;
+    }
+
+    final nameParts = _fullNameController.text
+        .trim()
+        .split(RegExp(r'\s+'))
+        .where((part) => part.isNotEmpty)
+        .toList();
     final firstName = nameParts.isNotEmpty ? nameParts.first : '';
     final lastName = nameParts.length > 1 ? nameParts.sublist(1).join(' ') : '';
-    
+
     final data = {
       'first_name': firstName,
       'last_name': lastName,
@@ -63,21 +129,23 @@ class _EditProfilePageState extends State<EditProfilePage> {
         'last_name': lastName,
         'email': _emailController.text.trim(),
         'phone': _phoneController.text.trim(),
-      }
+      },
     };
-    
+
     final success = await auth.updateCustomerDetails(userId, data);
-    
+
     if (!mounted) return;
-    
+
     if (success) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('تم تحديث البيانات بنجاح')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('تم تحديث البيانات بنجاح')));
       Navigator.pop(context);
     } else {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(auth.lastError ?? 'حدث خطأ أثناء تحديث البيانات')),
+        SnackBar(
+          content: Text(auth.lastError ?? 'حدث خطأ أثناء تحديث البيانات'),
+        ),
       );
     }
   }
@@ -93,17 +161,28 @@ class _EditProfilePageState extends State<EditProfilePage> {
           elevation: 0,
           title: const Text(
             'تعديل البيانات',
-            style: TextStyle(color: Color(0xFF2C3E50), fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Color(0xFF2C3E50),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           centerTitle: true,
           iconTheme: const IconThemeData(color: Colors.black),
         ),
         body: Consumer<AuthProvider>(
           builder: (context, auth, _) {
+            if (!_didPrefill && auth.userData != null) {
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (!mounted) return;
+                _prefillControllers(auth);
+              });
+            }
+
             if (auth.isLoading) {
               return const Center(child: CircularProgressIndicator());
             }
-            
+
             return ListView(
               padding: const EdgeInsets.all(20),
               children: [
@@ -113,11 +192,19 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       CircleAvatar(
                         radius: 55,
                         backgroundColor: Colors.grey[300],
-                        backgroundImage: auth.userData != null && auth.userData!['avatar_url'] != null
+                        backgroundImage:
+                            auth.userData != null &&
+                                auth.userData!['avatar_url'] != null
                             ? NetworkImage(auth.userData!['avatar_url'])
                             : null,
-                        child: auth.userData == null || auth.userData!['avatar_url'] == null
-                            ? const Icon(Icons.person, size: 55, color: Colors.white)
+                        child:
+                            auth.userData == null ||
+                                auth.userData!['avatar_url'] == null
+                            ? const Icon(
+                                Icons.person,
+                                size: 55,
+                                color: Colors.white,
+                              )
                             : null,
                       ),
                       Positioned(
@@ -127,7 +214,11 @@ class _EditProfilePageState extends State<EditProfilePage> {
                           radius: 20,
                           backgroundColor: Colors.red,
                           child: IconButton(
-                            icon: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                            icon: const Icon(
+                              Icons.camera_alt,
+                              color: Colors.white,
+                              size: 20,
+                            ),
                             onPressed: () {},
                           ),
                         ),
@@ -138,32 +229,59 @@ class _EditProfilePageState extends State<EditProfilePage> {
                 const SizedBox(height: 32),
                 _buildTextField('الاسم الكامل', _fullNameController),
                 const SizedBox(height: 16),
-                _buildTextField('البريد الإلكتروني', _emailController, TextInputType.emailAddress),
+                _buildTextField(
+                  'البريد الإلكتروني',
+                  _emailController,
+                  TextInputType.emailAddress,
+                ),
                 const SizedBox(height: 16),
-                _buildTextField('رقم الهاتف'.tr, _phoneController, TextInputType.phone),
+                _buildTextField(
+                  'رقم الهاتف'.tr,
+                  _phoneController,
+                  TextInputType.phone,
+                ),
                 const SizedBox(height: 40),
                 ElevatedButton(
                   onPressed: _updateProfile,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.red,
                     padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                   ),
-                  child: const Text('حفظ التعديلات', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white)),
+                  child: const Text(
+                    'حفظ التعديلات',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.white,
+                    ),
+                  ),
                 ),
               ],
             );
-          }
+          },
         ),
       ),
     );
   }
 
-  Widget _buildTextField(String label, TextEditingController controller, [TextInputType? keyboardType]) {
+  Widget _buildTextField(
+    String label,
+    TextEditingController controller, [
+    TextInputType? keyboardType,
+  ]) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: const TextStyle(fontWeight: FontWeight.bold, color: Color(0xFF2C3E50))),
+        Text(
+          label,
+          style: const TextStyle(
+            fontWeight: FontWeight.bold,
+            color: Color(0xFF2C3E50),
+          ),
+        ),
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
@@ -172,7 +290,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
           decoration: InputDecoration(
             filled: true,
             fillColor: Colors.white,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide.none,

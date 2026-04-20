@@ -1,5 +1,8 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
+import 'package:online_ezzy/core/api_service.dart';
+
+import 'contact_us_page.dart';
 
 class CnAddressPage extends StatefulWidget {
   const CnAddressPage({Key? key}) : super(key: key);
@@ -11,6 +14,49 @@ class CnAddressPage extends StatefulWidget {
 class _CnAddressPageState extends State<CnAddressPage> {
   String? _weightVal;
   String? _insuranceVal;
+  bool _isSubmitting = false;
+
+  Future<void> _submitAddressRequest() async {
+    if (_weightVal == null || _insuranceVal == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('من فضلك اختر الوزن والتأمين أولاً')),
+      );
+      return;
+    }
+
+    setState(() => _isSubmitting = true);
+
+    final response = await ApiService.contactUs({
+      'name': 'طلب عنوان صيني',
+      'email': 'address.request@onlineezzy.app',
+      'message':
+          'طلب الحصول على عنوان صيني وإتمام الدفع.\nالوزن المتوقع: $_weightVal\nنوع التأمين: $_insuranceVal',
+    });
+
+    if (!mounted) return;
+    setState(() => _isSubmitting = false);
+
+    if (response != null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('تم إرسال الطلب بنجاح. تواصل معنا لإتمام الدفع.'),
+        ),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'تعذر إرسال الطلب الآن. يمكنك التواصل مباشرة لإتمام الدفع.',
+          ),
+        ),
+      );
+    }
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => const ContactUsPage()),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -89,31 +135,38 @@ class _CnAddressPageState extends State<CnAddressPage> {
 
               SizedBox(height: 32),
 
-               SizedBox(
-                  width: double.infinity,
-                  height: 50,
-                  child: ElevatedButton(
-                    onPressed: () {
-                      // إتمام الإجراء
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.red,
-                      shape: RoundedRectangleBorder(
-                         borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 0,
+              SizedBox(
+                width: double.infinity,
+                height: 50,
+                child: ElevatedButton(
+                  onPressed: _isSubmitting ? null : _submitAddressRequest,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.red,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    child: Text(
-                      'احصل على العنوان وادفع الآن'.tr,
-                      style: TextStyle(
-                         fontSize: 16,
-                         fontWeight: FontWeight.bold,
-                         color: Colors.white,
-                      ),
-                    ),
+                    elevation: 0,
                   ),
-               ),
-               SizedBox(height: 40),
+                  child: _isSubmitting
+                      ? const SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        )
+                      : Text(
+                          'احصل على العنوان وادفع الآن'.tr,
+                          style: TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white,
+                          ),
+                        ),
+                ),
+              ),
+              SizedBox(height: 40),
             ],
           ),
         ),
@@ -121,7 +174,11 @@ class _CnAddressPageState extends State<CnAddressPage> {
     );
   }
 
-  Widget _buildStepCard({required String stepNumber, required String title, required Widget child}) {
+  Widget _buildStepCard({
+    required String stepNumber,
+    required String title,
+    required Widget child,
+  }) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -191,7 +248,10 @@ class _CnAddressPageState extends State<CnAddressPage> {
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
           isExpanded: true,
-          hint: Text(hint, style: TextStyle(color: Colors.grey.shade600, fontSize: 14)),
+          hint: Text(
+            hint,
+            style: TextStyle(color: Colors.grey.shade600, fontSize: 14),
+          ),
           value: value,
           icon: Icon(Icons.keyboard_arrow_down, color: Colors.grey),
           items: items.map((String item) {

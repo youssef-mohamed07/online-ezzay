@@ -1,7 +1,9 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
+import 'package:online_ezzy/providers/shipment_provider.dart';
+import 'package:provider/provider.dart';
 
-class ShipmentDetailsPage extends StatelessWidget {
+class ShipmentDetailsPage extends StatefulWidget {
   final String trackingNumber;
   final String status;
   final String weight;
@@ -16,7 +18,71 @@ class ShipmentDetailsPage extends StatelessWidget {
   });
 
   @override
+  State<ShipmentDetailsPage> createState() => _ShipmentDetailsPageState();
+}
+
+class _ShipmentDetailsPageState extends State<ShipmentDetailsPage> {
+  Map<String, dynamic>? _details;
+  bool _isLoading = true;
+
+  String get _effectiveStatus {
+    return (_details?['current_status'] ??
+            _details?['status'] ??
+            _details?['shipment_status'] ??
+            widget.status)
+        .toString();
+  }
+
+  String get _effectiveTrackingNumber {
+    return (_details?['tracking_number'] ??
+            _details?['number'] ??
+            widget.trackingNumber)
+        .toString();
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      _fetchDetails();
+    });
+  }
+
+  Future<void> _fetchDetails() async {
+    final provider = context.read<ShipmentProvider>();
+    final data = await provider.getShipmentDetails(widget.trackingNumber);
+    if (mounted) {
+      setState(() {
+        _details = data;
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    if (_isLoading) {
+      return Scaffold(
+        backgroundColor: const Color(0xFFF8F9FA),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0,
+          centerTitle: true,
+          title: Text(
+            'تفاصيل الشحنة'.tr,
+            style: const TextStyle(
+              color: Color(0xFF0F172A),
+              fontSize: 18,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+        body: const Center(child: CircularProgressIndicator(color: Color(0xFFE71D24))),
+      );
+    }
+
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -54,6 +120,10 @@ class ShipmentDetailsPage extends StatelessWidget {
   }
 
   Widget _buildHeaderCard() {
+    final imageUrl = _details?['image']?.toString() ?? _details?['image_url']?.toString();
+    final status = _effectiveStatus;
+    final trackingNumber = _effectiveTrackingNumber;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
@@ -76,8 +146,12 @@ class ShipmentDetailsPage extends StatelessWidget {
             decoration: BoxDecoration(
               color: const Color(0xFFF1F5F9),
               borderRadius: BorderRadius.circular(12),
+              image: imageUrl != null && imageUrl.isNotEmpty ? DecorationImage(
+                image: NetworkImage(imageUrl),
+                fit: BoxFit.cover,
+              ) : null,
             ),
-            child: Icon(Icons.inventory_2_outlined, color: Color(0xFFE71D24), size: 30),
+            child: imageUrl == null || imageUrl.isEmpty ? const Icon(Icons.inventory_2_outlined, color: Color(0xFFE71D24), size: 30) : null,
           ),
           SizedBox(width: 16),
           Expanded(
@@ -117,7 +191,46 @@ class ShipmentDetailsPage extends StatelessWidget {
     );
   }
 
+  List<Map<String, String>> _extractHistoryItems() {
+    final historyRaw =
+        _details?['status_history'] ??
+        _details?['history'] ??
+        _details?['timeline'] ??
+        _details?['events'] ??
+        _details?['steps'];
+
+    if (historyRaw is! List || historyRaw.isEmpty) {
+      return const <Map<String, String>>[];
+    }
+
+    final result = <Map<String, String>>[];
+    for (final item in historyRaw) {
+      if (item is! Map) continue;
+
+      final title =
+          (item['title'] ?? item['status'] ?? item['description'] ?? '')
+              .toString()
+              .trim();
+      if (title.isEmpty) continue;
+
+      final date =
+          (item['date'] ??
+              item['changed_at'] ??
+              item['time'] ??
+              item['timestamp'] ??
+              '')
+              .toString()
+              .trim();
+
+      result.add({'title': title, 'date': date});
+    }
+
+    return result;
+  }
+
   Widget _buildTimelineCard() {
+    final historyItems = _extractHistoryItems();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -143,10 +256,31 @@ class ShipmentDetailsPage extends StatelessWidget {
             ),
           ),
           SizedBox(height: 24),
-          _buildTimelineStep(title: 'تم الطلب'.tr, date: '10 مايو'.tr, isCompleted: true, isLast: false),
-          _buildTimelineStep(title: 'في الصندوق'.tr, date: '11 مايو'.tr, isCompleted: true, isLast: false),
-          _buildTimelineStep(title: 'في الطريق'.tr, date: '12 مايو'.tr, isActive: status == 'في الطريق'.tr, isCompleted: status == 'تم التسليم'.tr, isLast: false),
-          _buildTimelineStep(title: 'تم التسليم'.tr, date: '', isCompleted: status == 'تم التسليم'.tr, isLast: true),
+          if (historyItems.isEmpty)
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Text(
+                'لا يوجد خط زمني متاح لهذه الشحنة حالياً'.tr,
+                style: const TextStyle(color: Color(0xFF64748B)),
+              ),
+            )
+          else
+            ...historyItems.asMap().entries.map((entry) {
+              final index = entry.key;
+              final event = entry.value;
+              return _buildTimelineStep(
+                title: event['title'] ?? 'تحديث الشحنة'.tr,
+                date: event['date'] ?? '',
+                isCompleted: true,
+                isLast: index == historyItems.length - 1,
+              );
+            }),
         ],
       ),
     );
@@ -211,6 +345,23 @@ class ShipmentDetailsPage extends StatelessWidget {
   }
 
   Widget _buildDetailsCard() {
+    final statusHistory =
+      (_details?['status_history'] ?? _details?['history']) as List?;
+    final lastEntry =
+        statusHistory != null && statusHistory.isNotEmpty
+            ? statusHistory.last
+            : null;
+    final lastUpdate =
+        lastEntry is Map
+            ? (lastEntry['changed_at'] ?? lastEntry['date'])?.toString()
+            : (_details?['date_added']?.toString() ?? widget.date);
+    final carrier =
+      (_details?['carrier'] ?? _details?['shipping_company'] ?? '')
+        .toString();
+    final weight =
+      (_details?['weight'] ?? _details?['total_weight'] ?? widget.weight)
+        .toString();
+
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -238,9 +389,9 @@ class ShipmentDetailsPage extends StatelessWidget {
           SizedBox(height: 16),
           _buildDetailRow('الوزن'.tr, '$weight كجم'.tr),
           const Divider(height: 30, color: Color(0xFFF1F5F9)),
-          _buildDetailRow('تاريخ التحديث'.tr, date),
+          _buildDetailRow('تاريخ التحديث'.tr, lastUpdate ?? widget.date),
           const Divider(height: 30, color: Color(0xFFF1F5F9)),
-          _buildDetailRow('شركة الشحن'.tr, 'أرامكس - Aramex'.tr),
+          _buildDetailRow('شركة الشحن'.tr, carrier.isNotEmpty ? carrier : '-'),
         ],
       ),
     );

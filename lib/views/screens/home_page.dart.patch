@@ -1,0 +1,80 @@
+@@
+ import 'package:online_ezzy/providers/cart_provider.dart';
++import 'package:online_ezzy/providers/dashboard_provider.dart';
+ import 'package:online_ezzy/data/real_images.dart';
+@@
+-  static const _bannerImages = [
+-    RealImages.homeHero,
+-    RealImages.trackHero,
+-    RealImages.shipmentsHero,
+-  ];
+-
+   @override
+   void initState() {
+     super.initState();
+-    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+-      if (!mounted || !_bannerController.hasClients) return;
+-      final next = (_bannerIndex + 1) % _bannerImages.length;
+-      _bannerController.animateToPage(
+-        next,
+-        duration: const Duration(milliseconds: 500),
+-        curve: Curves.easeOutCubic,
+-      );
+-    });
++    WidgetsBinding.instance.addPostFrameCallback((_) {
++      context.read<DashboardProvider>().loadData();
++      _startBannerTimer();
++    });
+   }
+ 
++  void _startBannerTimer() {
++    _bannerTimer?.cancel();
++    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
++      if (!mounted || !_bannerController.hasClients) return;
++      final dashboardProvider = context.read<DashboardProvider>();
++      final length = dashboardProvider.sliders.isNotEmpty ? dashboardProvider.sliders.length : 1;
++      final next = (_bannerIndex + 1) % length;
++      _bannerController.animateToPage(
++        next,
++        duration: const Duration(milliseconds: 500),
++        curve: Curves.easeOutCubic,
++      );
++    });
++  }
++
+   @override
+@@
+             _TopActionsRow(
+               onTapDelivery: () => _openPage(const PackagesPage()),
+               onTapAddress: () => _openPage(const AddressPage()),
+               onTapTrack: () => _openPage(const ShipmentsPage()),
+               onTapServices: () => _openPage(const PackagesPage()),
+             ),
+             SizedBox(height: 28),
+-            _HeroSlider(
+-              controller: _bannerController,
+-              images: _bannerImages,
+-              index: _bannerIndex,
+-              onPageChanged: (value) => setState(() => _bannerIndex = value),
++            Consumer<DashboardProvider>(
++              builder: (context, dashboard, _) {
++                if (dashboard.isLoading) {
++                  return const Center(child: CircularProgressIndicator());
++                }
++                final images = dashboard.sliders.map<String>((s) => s['image'] ?? '').toList();
++                // Fallback dummy images if API returns empty
++                final finalImages = images.isNotEmpty ? images : [
++                  RealImages.homeHero,
++                  RealImages.trackHero,
++                  RealImages.shipmentsHero,
++                ];
++                return _HeroSlider(
++                  controller: _bannerController,
++                  images: finalImages,
++                  index: _bannerIndex,
++                  onPageChanged: (value) => setState(() => _bannerIndex = value),
++                );
++              },
+             ),
+             SizedBox(height: 28),
+@@

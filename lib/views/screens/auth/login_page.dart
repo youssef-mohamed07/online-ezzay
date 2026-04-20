@@ -31,7 +31,9 @@ class _LoginPageState extends State<LoginPage> {
 
     if (username.isEmpty || password.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('الرجاء إدخال البريد الإلكتروني وكلمة المرور'.tr)),
+        SnackBar(
+          content: Text('الرجاء إدخال البريد الإلكتروني وكلمة المرور'.tr),
+        ),
       );
       return;
     }
@@ -46,10 +48,11 @@ class _LoginPageState extends State<LoginPage> {
         (route) => false,
       );
     } else {
-      final errorMsg = authProvider.lastError ?? 'فشل تسجيل الدخول، تأكد من بياناتك'.tr;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(errorMsg)),
-      );
+      final errorMsg =
+          authProvider.lastError ?? 'فشل تسجيل الدخول، تأكد من بياناتك'.tr;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(errorMsg)));
     }
   }
 
@@ -58,25 +61,11 @@ class _LoginPageState extends State<LoginPage> {
     const red = Color(0xFFE71D24);
     const bgColor = Color(0xFFF8F9FA);
     const darkText = Color(0xFF1E293B);
-    const grayText = Color(0xFF94A3B8);
 
     final authProvider = Provider.of<AuthProvider>(context);
 
     return Scaffold(
       backgroundColor: bgColor,
-      appBar: AppBar(
-        backgroundColor: bgColor,
-        elevation: 0,
-        centerTitle: true,
-        title: Text(
-          'تسجيل الدخول',
-          style: TextStyle(
-            color: Colors.black,
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-      ),
       body: SafeArea(
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
@@ -137,7 +126,8 @@ class _LoginPageState extends State<LoginPage> {
                         onTap: () {
                           Navigator.of(context).push(
                             MaterialPageRoute<void>(
-                                builder: (_) => const ForgotPasswordPage()),
+                              builder: (_) => const ForgotPasswordPage(),
+                            ),
                           );
                         },
                         child: Text(
@@ -156,23 +146,28 @@ class _LoginPageState extends State<LoginPage> {
                       style: FilledButton.styleFrom(
                         backgroundColor: red,
                         foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 16),      
+                        padding: const EdgeInsets.symmetric(vertical: 16),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(30),
                         ),
                         elevation: 4,
                         shadowColor: red.withOpacity(0.4),
                       ),
-                      child: authProvider.isLoading 
+                      child: authProvider.isLoading
                           ? const SizedBox(
                               height: 24,
                               width: 24,
-                              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
                             )
                           : Text(
                               'تسجيل الدخول',
                               style: TextStyle(
-                                  fontSize: 16, fontWeight: FontWeight.bold),
+                                fontSize: 16,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                     ),
                     SizedBox(height: 16),
@@ -180,7 +175,8 @@ class _LoginPageState extends State<LoginPage> {
                       onPressed: () {
                         Navigator.of(context).pushAndRemoveUntil(
                           MaterialPageRoute<void>(
-                              builder: (_) => const ShellPage()),
+                            builder: (_) => const ShellPage(),
+                          ),
                           (route) => false,
                         );
                       },
@@ -192,51 +188,29 @@ class _LoginPageState extends State<LoginPage> {
                           borderRadius: BorderRadius.circular(30),
                         ),
                       ),
-                      child: Text(
-                        'تخطي التسجيل و الدخول ك ضيف'.tr,
-                        style: TextStyle(
-                            fontSize: 15, fontWeight: FontWeight.bold),
-                      ),
-                    ),
-                    SizedBox(height: 24),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          'ليس لديك حساب؟ '.tr,
-                          style: TextStyle(
-                              color: darkText.withOpacity(0.8),
-                              fontWeight: FontWeight.bold),
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.of(context).push(
-                              MaterialPageRoute(
-                                builder: (_) => const RegisterPage(),
-                              ),
-                            );
-                          },
-                          child: Text(
-                            'إنشاء حساب جديد'.tr,
-                            style: TextStyle(
-                              color: red,
-                              fontWeight: FontWeight.bold,
-                              fontSize: 14,
-                            ),
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          'تخطي التسجيل والدخول كضيف'.tr,
+                          maxLines: 1,
+                          textAlign: TextAlign.center,
+                          style: const TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.bold,
                           ),
                         ),
-                      ],
+                      ),
                     ),
                     SizedBox(height: 24),
                     Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Icon(Icons.star_border_rounded,
-                            color: red, size: 24),
+                        Icon(Icons.star_border_rounded, color: red, size: 24),
                         SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'ملحوظة يمكنك انشاء حسابك بعد اختيار الخدمات و اكمال\nعملية الدفع'.tr,
+                            'ملحوظة يمكنك انشاء حسابك بعد اختيار الخدمات و اكمال\nعملية الدفع'
+                                .tr,
                             style: TextStyle(
                               fontSize: 11,
                               color: darkText.withOpacity(0.6),
@@ -263,11 +237,10 @@ class _LoginPageState extends State<LoginPage> {
       child: RichText(
         text: TextSpan(
           text: text,
-          style: const TextStyle(
-            color: Colors.black87,
+          style: Theme.of(context).textTheme.titleSmall?.copyWith(
+            color: Colors.black,
             fontWeight: FontWeight.bold,
             fontSize: 14,
-            fontFamily: 'Cairo',
           ),
           children: const [
             TextSpan(
@@ -298,10 +271,11 @@ class _LoginPageState extends State<LoginPage> {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide.none,
         ),
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 14,
+        ),
       ),
     );
   }
 }
-

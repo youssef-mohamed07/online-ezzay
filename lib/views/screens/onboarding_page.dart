@@ -77,8 +77,23 @@ class _OnboardingPageState extends State<OnboardingPage> {
                     onPressed: _goHome,
                     style: TextButton.styleFrom(
                       foregroundColor: const Color(0xFF2E3440), // Dark color as in screenshot
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                      side: BorderSide(
+                        color: const Color(0xFF2E3440).withValues(alpha: 0.35),
+                        width: 1.2,
+                      ),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(999),
+                      ),
                     ),
-                    child: const Text('تخطي', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+                    child: const Text(
+                      'تخطي',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.4,
+                      ),
+                    ),
                   ),
                 ),
               ),

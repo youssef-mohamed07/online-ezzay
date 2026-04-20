@@ -1,0 +1,137 @@
+  // --- New Endpoints (ezzy/v1) ---
+
+  static Future<dynamic> getShipments() async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/shipments');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
+  }
+
+  static Future<dynamic> getShipmentDetails(String id) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/shipments/$id');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return null;
+  }
+
+  static Future<dynamic> requestShipment(Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/shipments/request');
+    final response = await http.post(
+      url, 
+      headers: {
+        'Authorization': _basicAuth,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(data)
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getDashboard() async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/dashboard');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return null;
+  }
+
+  static Future<List<dynamic>> getSliders() async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/sliders');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
+  }
+
+  static Future<Map<String, dynamic>?> trackShipment(String number) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/track?number=$number');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return null;
+  }
+
+  static Future<List<dynamic>> getNotifications() async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/notifications');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
+  }
+
+  static Future<bool> markNotificationAsRead(String id) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/notifications/$id/read');
+    final response = await http.post(url, headers: {'Authorization': _basicAuth});
+    return response.statusCode == 200;
+  }
+
+  static Future<Map<String, dynamic>> changePassword(String currentPassword, String newPassword) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/change_password');
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': _basicAuth,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode({
+        'current_password': currentPassword,
+        'new_password': newPassword
+      })
+    );
+    return jsonDecode(response.body);
+  }
+
+  static Future<dynamic> getWarehouseAddresses() async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/warehouse-addresses');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return [];
+  }
+
+  static Future<Map<String, dynamic>?> getPrivacyPolicy() async {
+    final url = Uri.parse('$baseUrl/wp/v2/pages?slug=privacy-policy');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      final List pages = jsonDecode(response.body);
+      if (pages.isNotEmpty) return pages.first;
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> getSettings() async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/settings');
+    final response = await http.get(url, headers: {'Authorization': _basicAuth});
+    if (response.statusCode == 200) {
+      return jsonDecode(response.body);
+    }
+    return null;
+  }
+
+  static Future<Map<String, dynamic>?> contactUs(Map<String, dynamic> data) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/contact');
+    final response = await http.post(
+      url,
+      headers: {
+        'Authorization': _basicAuth,
+        'Content-Type': 'application/json',
+      },
+      body: jsonEncode(data)
+    );
+    if (response.statusCode == 200 || response.statusCode == 201) {
+      return jsonDecode(response.body);
+    }
+    return null;
+  }
