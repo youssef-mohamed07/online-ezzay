@@ -99,10 +99,14 @@ class _HomePageState extends State<HomePage> {
             ),
             SizedBox(height: 28),
             _TopActionsRow(
-              onTapDelivery: () =>
-                  _openPage(const PackagesPage(categoryId: 68, pageTitle: 'طلب توصيل')),
+              onTapDelivery: () => _openPage(
+                const PackagesPage(categoryId: 68, pageTitle: 'طلب توصيل'),
+              ),
               onTapAddress: () => _openPage(
-                const PackagesPage(categoryIds: _addressCategoryIds, pageTitle: 'العناوين'),
+                const PackagesPage(
+                  categoryIds: _addressCategoryIds,
+                  pageTitle: 'العناوين',
+                ),
               ),
               onTapTrack: () => _openPage(const ShipmentsPage()),
               onTapServices: () => _openPage(
@@ -151,7 +155,10 @@ class _HomePageState extends State<HomePage> {
               builder: (context, provider, _) {
                 final active = provider.shipments.where((s) {
                   final status =
-                      (s['current_status'] ?? s['status'] ?? s['shipment_status'] ?? '')
+                      (s['current_status'] ??
+                              s['status'] ??
+                              s['shipment_status'] ??
+                              '')
                           .toString()
                           .toLowerCase();
                   return !(status.contains('تم التسليم') ||
@@ -199,7 +206,10 @@ class _HomePageState extends State<HomePage> {
               builder: (context, provider, _) {
                 final warehouseShipments = provider.shipments.where((s) {
                   final status =
-                      (s['current_status'] ?? s['status'] ?? s['shipment_status'] ?? '')
+                      (s['current_status'] ??
+                              s['status'] ??
+                              s['shipment_status'] ??
+                              '')
                           .toString()
                           .toLowerCase();
                   return status.contains('warehouse') ||
@@ -238,10 +248,15 @@ class _HomePageState extends State<HomePage> {
                                   '-')
                               .toString();
                       final source =
-                          (shipment['current_status'] ?? shipment['status'] ?? shipment['shipment_status'] ?? '-')
+                          (shipment['current_status'] ??
+                                  shipment['status'] ??
+                                  shipment['shipment_status'] ??
+                                  '-')
                               .toString();
                       final weight =
-                          (shipment['weight'] ?? shipment['total_weight'] ?? '-')
+                          (shipment['weight'] ??
+                                  shipment['total_weight'] ??
+                                  '-')
                               .toString();
 
                       return Padding(
@@ -250,9 +265,8 @@ class _HomePageState extends State<HomePage> {
                           code: code,
                           source: source,
                           weight: weight,
-                          onTap: () => _openPage(
-                            TrackPage(initialTrackingNumber: code),
-                          ),
+                          onTap: () =>
+                              _openPage(TrackPage(initialTrackingNumber: code)),
                         ),
                       );
                     }),
@@ -260,7 +274,10 @@ class _HomePageState extends State<HomePage> {
                       padding: const EdgeInsets.only(bottom: 12),
                       child: _WarehouseOrderCard(
                         onTap: () => _openPage(
-                          const PackagesPage(categoryId: 68, pageTitle: 'طلب توصيل'),
+                          const PackagesPage(
+                            categoryId: 68,
+                            pageTitle: 'طلب توصيل',
+                          ),
                         ),
                       ),
                     ),
@@ -338,9 +355,9 @@ class _TopHeader extends StatelessWidget {
         final greeting = _timeGreeting();
         final activeShipmentsCount = shipmentProvider.shipments.where((s) {
           final status =
-            (s['current_status'] ?? s['status'] ?? s['shipment_status'] ?? '')
-              .toString()
-              .toLowerCase();
+              (s['current_status'] ?? s['status'] ?? s['shipment_status'] ?? '')
+                  .toString()
+                  .toLowerCase();
           return status != 'تم التسليم' &&
               status != 'delivered' &&
               status != 'completed';
@@ -726,9 +743,8 @@ class _TrackingCardState extends State<_TrackingCard> {
     final number = _trackingController.text.trim();
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => TrackPage(
-          initialTrackingNumber: number.isEmpty ? null : number,
-        ),
+        builder: (_) =>
+            TrackPage(initialTrackingNumber: number.isEmpty ? null : number),
       ),
     );
   }
@@ -812,18 +828,27 @@ class _ActiveShipmentCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final status =
-      (shipment['current_status'] ?? shipment['status'] ?? shipment['shipment_status'] ?? '')
+        (shipment['current_status'] ??
+                shipment['status'] ??
+                shipment['shipment_status'] ??
+                '')
             .toString()
             .tr;
     final trackingNumber =
-        (shipment['tracking_number'] ?? shipment['number'] ?? shipment['id'] ?? '-')
+        (shipment['tracking_number'] ??
+                shipment['number'] ??
+                shipment['id'] ??
+                '-')
             .toString();
-    final title =
-        (shipment['title'] ?? shipment['name'] ?? 'شحنة').toString();
-    final weight =
-        (shipment['weight'] ?? shipment['total_weight'] ?? '0').toString();
+    final title = (shipment['title'] ?? shipment['name'] ?? 'شحنة').toString();
+    final weight = (shipment['weight'] ?? shipment['total_weight'] ?? '0')
+        .toString();
     final date =
-      (shipment['date_added'] ?? shipment['date'] ?? shipment['created_at'] ?? '').toString();
+        (shipment['date_added'] ??
+                shipment['date'] ??
+                shipment['created_at'] ??
+                '')
+            .toString();
 
     return Container(
       decoration: BoxDecoration(
@@ -1014,9 +1039,8 @@ class _ActiveShipmentCard extends StatelessWidget {
                     onPressed: () {
                       Navigator.of(context).push(
                         MaterialPageRoute<void>(
-                          builder: (_) => TrackPage(
-                            initialTrackingNumber: trackingNumber,
-                          ),
+                          builder: (_) =>
+                              TrackPage(initialTrackingNumber: trackingNumber),
                         ),
                       );
                     },
@@ -1436,7 +1460,7 @@ class _AddressCardsRowState extends State<_AddressCardsRow> {
                       ],
                     ),
                     Text(
-                      '$price جنيه\nتعرف على تفاصيل العنوان',
+                      '$price دولار\nتعرف على تفاصيل العنوان',
                       textAlign: TextAlign.start,
                       style: const TextStyle(
                         fontSize: 11,
@@ -1579,7 +1603,7 @@ class _MockAddressCard extends StatelessWidget {
             ],
           ),
           Text(
-            '$price جنيه\n$note',
+            '$price دولار\n$note',
             textAlign: TextAlign.start,
             style: const TextStyle(
               fontSize: 11,

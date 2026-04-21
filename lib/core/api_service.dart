@@ -253,6 +253,70 @@ class ApiService {
     return [];
   }
 
+  static Future<List<dynamic>> getProductVariations(
+    int productId, {
+    int perPage = 100,
+  }) async {
+    try {
+      final base = Uri.parse('$baseUrl/wc/v3/products/$productId/variations');
+      final url = base.replace(
+        queryParameters: {
+          ...base.queryParameters,
+          'per_page': perPage.toString(),
+        },
+      );
+
+      var response = await http
+          .get(url, headers: {'Authorization': _catalogBasicAuth})
+          .timeout(const Duration(seconds: 15));
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        response = await http
+            .get(url, headers: {'Authorization': _basicAuth})
+            .timeout(const Duration(seconds: 15));
+      }
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        final queryUrl = url.replace(
+          queryParameters: {
+            ...url.queryParameters,
+            'consumer_key': catalogConsumerKey,
+            'consumer_secret': catalogConsumerSecret,
+          },
+        );
+        response = await http
+            .get(queryUrl)
+            .timeout(const Duration(seconds: 15));
+      }
+
+      if (response.statusCode == 401 || response.statusCode == 403) {
+        final queryUrl = url.replace(
+          queryParameters: {
+            ...url.queryParameters,
+            'consumer_key': consumerKey,
+            'consumer_secret': consumerSecret,
+          },
+        );
+        response = await http
+            .get(queryUrl)
+            .timeout(const Duration(seconds: 15));
+      }
+
+      if (response.statusCode == 200) {
+        final decoded = jsonDecode(response.body);
+        if (decoded is List) return decoded;
+      }
+
+      print(
+        'getProductVariations($productId) error: ${response.statusCode} - ${response.body}',
+      );
+    } catch (e) {
+      print('getProductVariations($productId) exception: $e');
+    }
+
+    return [];
+  }
+
   static Future<Map<String, dynamic>> getSingleCategory(String id) async {
     final url = Uri.parse('$baseUrl/wc/store/v1/products/categories/$id');
     final response = await http.get(
@@ -318,11 +382,20 @@ class ApiService {
   static Future<Map<String, dynamic>> addCartItemWithMeta({
     required int productId,
     required int quantity,
+    int? variationId,
     String? cartToken,
   }) async {
+    final query = <String, String>{
+      'id': productId.toString(),
+      'quantity': quantity.toString(),
+    };
+    if (variationId != null && variationId > 0) {
+      query['variation'] = variationId.toString();
+      query['variation_id'] = variationId.toString();
+    }
     final url = Uri.parse(
-      '$baseUrl/wc/store/v1/cart/items?id=$productId&quantity=$quantity',
-    );
+      '$baseUrl/wc/store/v1/cart/items',
+    ).replace(queryParameters: query);
     final headers = await _getHeaders(cartToken: cartToken);
     final response = await http.post(url, headers: headers);
     final decoded = _safeDecodeBody(response.body);
@@ -503,10 +576,11 @@ class ApiService {
 
   static Future<Map<String, dynamic>> checkout(
     String cartToken,
-    Map<String, dynamic> checkoutData,
-  ) async {
+    Map<String, dynamic> checkoutData, {
+    bool useAuth = true,
+  }) async {
     final url = Uri.parse('$baseUrl/wc/store/v1/checkout');
-    final headers = await _getHeaders(useAuth: true, cartToken: cartToken);
+    final headers = await _getHeaders(useAuth: useAuth, cartToken: cartToken);
     final response = await http.post(
       url,
       headers: headers,
@@ -534,9 +608,12 @@ class ApiService {
     String currency,
     String paymentMethod,
   ) async {
-    if (stripeSecretKey.contains('REMOVED')) {
+    if (stripeSecretKey.trim().isEmpty || stripeSecretKey.contains('REMOVED')) {
       return {
-        'error': {'message': 'Stripe secret key is not configured.'},
+        'error': {
+          'message':
+              'Stripe secret key is not configured. Pass STRIPE_SECRET_KEY via --dart-define.',
+        },
         'status_code': 500,
       };
     }

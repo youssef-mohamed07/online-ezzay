@@ -78,8 +78,10 @@ class CartProvider extends ChangeNotifier {
     if (cartData is! Map<String, dynamic>) return;
     final raw = cartData['payment_methods'];
     if (raw is List) {
-      _availablePaymentMethods =
-          raw.map((e) => e.toString()).where((e) => e.isNotEmpty).toList();
+      _availablePaymentMethods = raw
+          .map((e) => e.toString())
+          .where((e) => e.isNotEmpty)
+          .toList();
     }
   }
 
@@ -122,7 +124,11 @@ class CartProvider extends ChangeNotifier {
         message.contains('cart');
   }
 
-  Future<bool> addToCart(int productId, int quantity) async {
+  Future<bool> addToCart(
+    int productId,
+    int quantity, {
+    int? variationId,
+  }) async {
     _isLoading = true;
     _addingProductIds.add(productId);
     notifyListeners();
@@ -132,6 +138,7 @@ class CartProvider extends ChangeNotifier {
       final addRes = await ApiService.addCartItemWithMeta(
         productId: productId,
         quantity: quantity,
+        variationId: variationId,
         cartToken: _cartToken,
       );
       var statusCode = addRes['status_code'] as int? ?? 500;
@@ -146,6 +153,7 @@ class CartProvider extends ChangeNotifier {
         final retryRes = await ApiService.addCartItemWithMeta(
           productId: productId,
           quantity: quantity,
+          variationId: variationId,
           cartToken: _cartToken,
         );
         statusCode = retryRes['status_code'] as int? ?? 500;
@@ -200,7 +208,7 @@ class CartProvider extends ChangeNotifier {
       );
       await _persistCartToken(response['cart_token']?.toString());
       _cartItems = (response['items'] as List<dynamic>? ?? []);
-      
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -219,7 +227,9 @@ class CartProvider extends ChangeNotifier {
     notifyListeners();
     try {
       if (_cartToken == null) await _loadCartToken();
-      final clearRes = await ApiService.clearCartWithMeta(cartToken: _cartToken);
+      final clearRes = await ApiService.clearCartWithMeta(
+        cartToken: _cartToken,
+      );
       await _persistCartToken(clearRes['cart_token']?.toString());
       _cartItems = [];
       notifyListeners();
@@ -248,7 +258,7 @@ class CartProvider extends ChangeNotifier {
       );
       await _persistCartToken(response['cart_token']?.toString());
       _cartItems = (response['items'] as List<dynamic>? ?? []);
-      
+
       _isLoading = false;
       notifyListeners();
       return true;
@@ -261,7 +271,10 @@ class CartProvider extends ChangeNotifier {
     return false;
   }
 
-  Future<Map<String, dynamic>?> checkout(Map<String, dynamic> checkoutData) async {
+  Future<Map<String, dynamic>?> checkout(
+    Map<String, dynamic> checkoutData, {
+    bool useAuth = true,
+  }) async {
     _isLoading = true;
     _lastCheckoutError = null;
     notifyListeners();
@@ -285,7 +298,11 @@ class CartProvider extends ChangeNotifier {
         };
       }
 
-      var response = await ApiService.checkout(_cartToken!, checkoutData);
+      var response = await ApiService.checkout(
+        _cartToken!,
+        checkoutData,
+        useAuth: useAuth,
+      );
 
       if (!_isCheckoutSuccess(response) && _shouldRetryCheckout(response)) {
         await _clearStoredCartToken();
@@ -294,7 +311,11 @@ class CartProvider extends ChangeNotifier {
         _updateAvailablePaymentMethods(newCart['data']);
 
         if (_cartToken != null) {
-          response = await ApiService.checkout(_cartToken!, checkoutData);
+          response = await ApiService.checkout(
+            _cartToken!,
+            checkoutData,
+            useAuth: useAuth,
+          );
         }
       }
 
@@ -325,9 +346,17 @@ class CartProvider extends ChangeNotifier {
     };
   }
 
-  Future<Map<String, dynamic>?> createPaymentIntent(int amount, String currency, String paymentMethod) async {
+  Future<Map<String, dynamic>?> createPaymentIntent(
+    int amount,
+    String currency,
+    String paymentMethod,
+  ) async {
     try {
-      final response = await ApiService.createPaymentIntent(amount, currency, paymentMethod);
+      final response = await ApiService.createPaymentIntent(
+        amount,
+        currency,
+        paymentMethod,
+      );
       return response;
     } catch (e) {
       print('Create payment intent error: $e');
@@ -335,9 +364,15 @@ class CartProvider extends ChangeNotifier {
     return null;
   }
 
-  Future<Map<String, dynamic>?> confirmPaymentIntent(String paymentIntentId, Map<String, String> paymentMethodData) async {
+  Future<Map<String, dynamic>?> confirmPaymentIntent(
+    String paymentIntentId,
+    Map<String, String> paymentMethodData,
+  ) async {
     try {
-      final response = await ApiService.confirmPaymentIntent(paymentIntentId, paymentMethodData);
+      final response = await ApiService.confirmPaymentIntent(
+        paymentIntentId,
+        paymentMethodData,
+      );
       return response;
     } catch (e) {
       print('Confirm payment intent error: $e');

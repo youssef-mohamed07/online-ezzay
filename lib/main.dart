@@ -10,7 +10,7 @@ import 'providers/shipment_provider.dart';
 import 'providers/dashboard_provider.dart';
 
 const String _defaultStripePublishableKey =
-    'pk_test_TYooMQauvdEDq54NiTphI7jx';
+    'pk_test_51SC0wKRwqXYqDUmPxuBKGdQawJCymAgsTx8at0e9mC9MYJ22S54zPcWVJK3Nc4YIxLEwQtcTuO1NyAFzWDC5MoZf00VSKWbkS5';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -32,7 +32,6 @@ Future<void> main() async {
         ChangeNotifierProvider(create: (_) => DashboardProvider()),
       ],
       child: const OnlineEzzyApp(),
-
     ),
   );
 }

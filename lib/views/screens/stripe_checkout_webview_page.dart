@@ -1,16 +1,12 @@
 import 'dart:async';
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 class StripeCheckoutWebViewPage extends StatefulWidget {
-  const StripeCheckoutWebViewPage({
-    super.key,
-    required this.initialUrl,
-  });
+  const StripeCheckoutWebViewPage({super.key, required this.initialUrl});
 
   final String initialUrl;
 
@@ -26,8 +22,7 @@ class _StripeCheckoutWebViewPageState extends State<StripeCheckoutWebViewPage> {
   String? _initError;
   bool _isOpeningBrowser = false;
 
-  bool get _useBrowserFallback =>
-      defaultTargetPlatform == TargetPlatform.iOS;
+  bool get _useBrowserFallback => true;
 
   bool _isSuccessUrl(String url) {
     final lower = url.toLowerCase();
@@ -154,7 +149,7 @@ class _StripeCheckoutWebViewPageState extends State<StripeCheckoutWebViewPage> {
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
                     const Text(
-                      'فتحنا صفحة الدفع الآمنة. بعد إتمام الدفع ارجع للتطبيق ثم اضغط "تحققت من الدفع".',
+                      'سنفتح صفحة الدفع الآمنة داخل نافذة المتصفح المدمجة. بعد إتمام الدفع ارجع هنا واضغط "مراجعة حالة الدفع"، وسيتم التأكد من حالة الطلب من المتجر.',
                       style: TextStyle(fontSize: 15),
                     ),
                     const SizedBox(height: 16),
@@ -169,7 +164,7 @@ class _StripeCheckoutWebViewPageState extends State<StripeCheckoutWebViewPage> {
                     const SizedBox(height: 10),
                     ElevatedButton(
                       onPressed: () => _finish(true),
-                      child: const Text('تحققت من الدفع'),
+                      child: const Text('مراجعة حالة الدفع'),
                     ),
                     const SizedBox(height: 10),
                     TextButton(
@@ -180,32 +175,32 @@ class _StripeCheckoutWebViewPageState extends State<StripeCheckoutWebViewPage> {
                 ),
               )
             : (_controller == null
-                ? Center(
-                    child: _initError == null
-                        ? const CircularProgressIndicator()
-                        : Padding(
-                            padding: const EdgeInsets.all(20),
-                            child: Column(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  _initError!,
-                                  textAlign: TextAlign.center,
-                                ),
-                                const SizedBox(height: 12),
-                                ElevatedButton(
-                                  onPressed: _openInBrowser,
-                                  child: const Text('فتح الدفع في المتصفح'),
-                                ),
-                                TextButton(
-                                  onPressed: () => _finish(false),
-                                  child: const Text('رجوع'),
-                                ),
-                              ],
+                  ? Center(
+                      child: _initError == null
+                          ? const CircularProgressIndicator()
+                          : Padding(
+                              padding: const EdgeInsets.all(20),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    _initError!,
+                                    textAlign: TextAlign.center,
+                                  ),
+                                  const SizedBox(height: 12),
+                                  ElevatedButton(
+                                    onPressed: _openInBrowser,
+                                    child: const Text('فتح صفحة الدفع الآمنة'),
+                                  ),
+                                  TextButton(
+                                    onPressed: () => _finish(false),
+                                    child: const Text('رجوع'),
+                                  ),
+                                ],
+                              ),
                             ),
-                          ),
-                  )
-                : WebViewWidget(controller: _controller!)),
+                    )
+                  : WebViewWidget(controller: _controller!)),
       ),
     );
   }

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:online_ezzy/core/api_service.dart';
 import 'package:online_ezzy/providers/product_provider.dart';
 import 'package:online_ezzy/providers/cart_provider.dart';
 
@@ -19,7 +20,20 @@ class PackagesPage extends StatefulWidget {
   State<PackagesPage> createState() => _PackagesPageState();
 }
 
+class _ProductVariationOption {
+  const _ProductVariationOption({
+    required this.id,
+    required this.label,
+    required this.price,
+  });
+
+  final int id;
+  final String label;
+  final double price;
+}
+
 class _PackagesPageState extends State<PackagesPage> {
+  static const int _packagesOnlyCategoryId = 68;
   static const Set<int> _addressCategoryIdSet = {69, 70, 77};
   static const String _insideAddressImageUrl =
       'https://images.pexels.com/photos/196667/pexels-photo-196667.jpeg?auto=compress&cs=tinysrgb&w=600';
@@ -29,6 +43,137 @@ class _PackagesPageState extends State<PackagesPage> {
       'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=600';
 
   int? _selectedCategoryId;
+  final Map<int, Future<List<_ProductVariationOption>>>
+  _variationOptionsFutureByProduct =
+      <int, Future<List<_ProductVariationOption>>>{};
+  final Map<int, int> _selectedVariationByProduct = <int, int>{};
+  final Map<int, Set<int>> _variationIdsByProduct = <int, Set<int>>{};
+
+  Future<List<_ProductVariationOption>> _variationOptionsFuture(int productId) {
+    return _variationOptionsFutureByProduct.putIfAbsent(
+      productId,
+      () => _loadVariationOptions(productId),
+    );
+  }
+
+  Future<List<_ProductVariationOption>> _loadVariationOptions(
+    int productId,
+  ) async {
+    final rawVariations = await ApiService.getProductVariations(productId);
+    final options = <_ProductVariationOption>[];
+
+    for (final row in rawVariations) {
+      if (row is! Map) continue;
+      final variation = Map<String, dynamic>.from(row);
+
+      final id = _parseInt(variation['id']);
+      if (id == null || id <= 0) continue;
+
+      final status = variation['status']?.toString().toLowerCase() ?? '';
+      if (status.isNotEmpty && status != 'publish') continue;
+      if (variation['purchasable'] == false) continue;
+
+      final label = _variationOptionLabel(variation);
+      final price = _parsePriceValue(
+        variation['price'] ??
+            variation['regular_price'] ??
+            variation['sale_price'],
+      );
+
+      options.add(_ProductVariationOption(id: id, label: label, price: price));
+    }
+
+    options.sort((a, b) {
+      final aNum = double.tryParse(a.label);
+      final bNum = double.tryParse(b.label);
+      if (aNum != null && bNum != null) {
+        return aNum.compareTo(bNum);
+      }
+      return a.label.compareTo(b.label);
+    });
+
+    _variationIdsByProduct[productId] = options.map((e) => e.id).toSet();
+    if (options.isNotEmpty) {
+      _selectedVariationByProduct.putIfAbsent(
+        productId,
+        () => options.first.id,
+      );
+    }
+
+    return options;
+  }
+
+  String _variationOptionLabel(Map<String, dynamic> variation) {
+    final attrs = variation['attributes'];
+    if (attrs is List) {
+      final values = <String>[];
+      for (final attr in attrs) {
+        if (attr is! Map) continue;
+        final value = attr['option']?.toString().trim() ?? '';
+        if (value.isNotEmpty) values.add(value);
+      }
+      if (values.isNotEmpty) return values.join(' / ');
+    }
+
+    final name = variation['name']?.toString().trim() ?? '';
+    if (name.isNotEmpty) return name;
+    return 'خيار';
+  }
+
+  String? _extractCartVariationLabel(dynamic cartItem) {
+    if (cartItem is! Map) return null;
+    final variation = cartItem['variation'];
+    if (variation is! List || variation.isEmpty) return null;
+
+    final first = variation.first;
+    if (first is! Map) return null;
+
+    final attribute = first['attribute']?.toString().trim() ?? '';
+    final value = first['value']?.toString().trim() ?? '';
+    if (attribute.isNotEmpty && value.isNotEmpty) {
+      return '$attribute: $value';
+    }
+    if (value.isNotEmpty) return value;
+    return null;
+  }
+
+  int _extractCartQuantity(dynamic cartItem) {
+    if (cartItem is! Map) return 0;
+
+    final quantityRaw = cartItem['quantity'];
+    if (quantityRaw is Map) {
+      return int.tryParse((quantityRaw['value'] ?? '0').toString()) ?? 0;
+    }
+
+    return int.tryParse(quantityRaw?.toString() ?? '0') ?? 0;
+  }
+
+  bool _isCartItemQuantityEditable(dynamic cartItem) {
+    if (cartItem is! Map) return true;
+
+    final limits = cartItem['quantity_limits'];
+    if (limits is Map && limits['editable'] is bool) {
+      return limits['editable'] as bool;
+    }
+
+    return true;
+  }
+
+  double _parsePriceValue(dynamic value) {
+    final normalized = value?.toString().trim().replaceAll(',', '.') ?? '';
+    final parsed = double.tryParse(normalized);
+    if (parsed == null || parsed.isNaN || parsed.isInfinite || parsed < 0) {
+      return 0;
+    }
+    return parsed;
+  }
+
+  String _formatPrice(double value) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
+  }
+
+  String _formatCurrency(double value) => '${_formatPrice(value)} دولار';
 
   String? _extractRemoteProductImage(Map<String, dynamic> product) {
     final imagesRaw = product['images'];
@@ -134,11 +279,7 @@ class _PackagesPageState extends State<PackagesPage> {
 
   bool _isAddressCategoryId(int id) => _addressCategoryIdSet.contains(id);
 
-  bool get _isAddressHubMode {
-    final ids = widget.categoryIds;
-    if (ids == null || ids.isEmpty) return false;
-    return ids.any(_isAddressCategoryId);
-  }
+  bool get _isAddressHubMode => false;
 
   String _categoryNameById(List<dynamic> categories, int categoryId) {
     for (final cat in categories) {
@@ -191,8 +332,8 @@ class _PackagesPageState extends State<PackagesPage> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<ProductProvider>(context, listen: false);
       provider.loadDeliveryProducts(
-        categoryId: widget.categoryId,
-        categoryIds: widget.categoryIds,
+        categoryId: _packagesOnlyCategoryId,
+        categoryIds: null,
       );
     });
   }
@@ -226,7 +367,14 @@ class _PackagesPageState extends State<PackagesPage> {
             }
 
             final isAddressHubPage = _isAddressHubMode;
-            final allProducts = productProvider.deliveryProducts;
+            final allProducts = productProvider.deliveryProducts.where((item) {
+              if (item is! Map) return false;
+              final product = Map<String, dynamic>.from(item);
+              return _productBelongsToCategory(
+                product,
+                _packagesOnlyCategoryId,
+              );
+            }).toList();
 
             if (isAddressHubPage) {
               final allCategoryIds = widget.categoryIds ?? const <int>[];
@@ -468,8 +616,8 @@ class _PackagesPageState extends State<PackagesPage> {
                                 context,
                                 listen: false,
                               ).loadDeliveryProducts(
-                                categoryId: widget.categoryId,
-                                categoryIds: widget.categoryIds,
+                                categoryId: _packagesOnlyCategoryId,
+                                categoryIds: null,
                               );
                             },
                             icon: Icon(
@@ -505,8 +653,12 @@ class _PackagesPageState extends State<PackagesPage> {
                   ...items.map((prod) {
                     final product = Map<String, dynamic>.from(prod as Map);
                     final name = product['name']?.toString() ?? 'بدون اسم';
-                    final price = product['price']?.toString() ?? '0';
+                    final unitPrice = _parsePriceValue(product['price']);
                     final productId = int.tryParse(prod['id'].toString()) ?? 0;
+                    final isVariableProduct =
+                        product['type']?.toString() == 'variable' &&
+                        product['variations'] is List &&
+                        (product['variations'] as List).isNotEmpty;
                     final remoteImage = _extractRemoteProductImage(product);
                     final isDeliveryPack = _isDeliveryPack(product);
 
@@ -551,7 +703,8 @@ class _PackagesPageState extends State<PackagesPage> {
                             ? 'lib/assets/images/home/العناوين.png'
                             : 'lib/assets/images/home/اطلب توصيل.png',
                         title: name,
-                        subtitle: '$price جنيه',
+                        unitPrice: unitPrice,
+                        isVariableProduct: isVariableProduct,
                         features: features,
                         isDeliveryPack: isDeliveryPack,
                       ),
@@ -708,7 +861,8 @@ class _PackagesPageState extends State<PackagesPage> {
     required String? remoteImageUrl,
     required String imageUrl,
     required String title,
-    required String subtitle,
+    required double unitPrice,
+    required bool isVariableProduct,
     required List<String> features,
     required bool isDeliveryPack,
   }) {
@@ -810,7 +964,7 @@ class _PackagesPageState extends State<PackagesPage> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  subtitle,
+                  _formatCurrency(unitPrice),
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -859,105 +1013,429 @@ class _PackagesPageState extends State<PackagesPage> {
                   ),
                 ),
                 const SizedBox(height: 24),
-                Selector<CartProvider, _PackageCartUiState>(
-                  selector: (context, cartProvider) {
-                    final cartItem = cartProvider.cartItems
-                        .cast<dynamic>()
-                        .firstWhere(
-                          (item) =>
-                              item is Map &&
-                              item['id'].toString() == productId.toString(),
-                          orElse: () => null,
-                        );
+                if (isVariableProduct)
+                  FutureBuilder<List<_ProductVariationOption>>(
+                    future: _variationOptionsFuture(productId),
+                    builder: (context, snapshot) {
+                      final options =
+                          snapshot.data ?? const <_ProductVariationOption>[];
+                      final hasOptions = options.isNotEmpty;
+                      final selectedVariationId = hasOptions
+                          ? (options.any(
+                                  (option) =>
+                                      option.id ==
+                                      _selectedVariationByProduct[productId],
+                                )
+                                ? _selectedVariationByProduct[productId]
+                                : options.first.id)
+                          : null;
 
-                    return _PackageCartUiState(
-                      isInCart: cartItem != null,
-                      isAdding: cartProvider.isAddingProduct(productId),
-                    );
-                  },
-                  builder: (context, cartState, child) {
-                    if (cartState.isInCart) {
-                      return Container(
-                        width: double.infinity,
-                        height: 56,
-                        decoration: BoxDecoration(
-                          color: const Color(
-                            0xFFE71D24,
-                          ).withValues(alpha: 0.08),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(
-                            color: const Color(
-                              0xFFE71D24,
-                            ).withValues(alpha: 0.35),
-                          ),
-                        ),
-                        child: const Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            Icon(
-                              Icons.check_circle_rounded,
-                              color: Color(0xFFE71D24),
+                      final selectedOption = hasOptions
+                          ? options.firstWhere(
+                              (option) => option.id == selectedVariationId,
+                              orElse: () => options.first,
+                            )
+                          : null;
+
+                      return Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          const Text(
+                            'اختر الفريشن',
+                            style: TextStyle(
+                              color: Color(0xFF334155),
+                              fontSize: 13,
+                              fontWeight: FontWeight.w700,
                             ),
-                            SizedBox(width: 8),
-                            Text(
-                              'تم اختيار الباقة',
-                              style: TextStyle(
+                          ),
+                          const SizedBox(height: 8),
+                          if (snapshot.connectionState ==
+                                  ConnectionState.waiting &&
+                              !hasOptions)
+                            const Padding(
+                              padding: EdgeInsets.symmetric(vertical: 8),
+                              child: LinearProgressIndicator(
                                 color: Color(0xFFE71D24),
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
                               ),
-                            ),
-                          ],
-                        ),
-                      );
-                    }
-
-                    return SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: cartState.isAdding
-                            ? null
-                            : () async {
-                                final success = await context
-                                    .read<CartProvider>()
-                                    .addToCart(productId, 1);
-                                if (!context.mounted || success) return;
-                                ScaffoldMessenger.of(context).showSnackBar(
-                                  const SnackBar(
-                                    content: Text('فشل إضافة الباقة للسلة'),
-                                    backgroundColor: Colors.red,
-                                  ),
-                                );
-                              },
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE71D24),
-                          foregroundColor: Colors.white,
-                          elevation: 0,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        child: cartState.isAdding
-                            ? const CircularProgressIndicator(
-                                color: Colors.white,
-                              )
-                            : const Text(
-                                'اختار الباقة',
-                                style: TextStyle(
-                                  fontSize: 17,
-                                  fontWeight: FontWeight.bold,
+                            )
+                          else if (!hasOptions)
+                            Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 12,
+                                vertical: 10,
+                              ),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF1F2),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(
+                                  color: const Color(0xFFFDA4AF),
                                 ),
                               ),
-                      ),
-                    );
-                  },
-                ),
+                              child: const Text(
+                                'لا توجد فريشنات متاحة لهذا المنتج حالياً',
+                                style: TextStyle(
+                                  color: Color(0xFF9F1239),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            )
+                          else
+                            OutlinedButton.icon(
+                              onPressed: () => _openVariationPicker(
+                                productId: productId,
+                                options: options,
+                                selectedVariationId: selectedVariationId,
+                              ),
+                              style: OutlinedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 12,
+                                ),
+                                side: const BorderSide(
+                                  color: Color(0xFFE2E8F0),
+                                ),
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                backgroundColor: const Color(0xFFF8FAFC),
+                                foregroundColor: const Color(0xFF0F172A),
+                              ),
+                              icon: const Icon(Icons.swap_vert_rounded),
+                              label: Text(
+                                selectedOption?.label ?? 'اختيار الفريشن',
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          const SizedBox(height: 12),
+                          _buildPackageCartSection(
+                            productId: productId,
+                            baseProductPrice: unitPrice,
+                            selectedTotal: selectedOption?.price ?? unitPrice,
+                            isVariableProduct: true,
+                            selectedVariationId: selectedVariationId,
+                            selectedVariationLabel: selectedOption?.label,
+                            variationRequiredButMissing: !hasOptions,
+                          ),
+                        ],
+                      );
+                    },
+                  )
+                else
+                  _buildPackageCartSection(
+                    productId: productId,
+                    baseProductPrice: unitPrice,
+                    selectedTotal: unitPrice,
+                    isVariableProduct: false,
+                  ),
               ],
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Future<void> _openVariationPicker({
+    required int productId,
+    required List<_ProductVariationOption> options,
+    required int? selectedVariationId,
+  }) async {
+    final picked = await showModalBottomSheet<int>(
+      context: context,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (sheetContext) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const SizedBox(height: 10),
+              const Text(
+                'اختر الفريشن',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                  color: Color(0xFF0F172A),
+                ),
+              ),
+              const SizedBox(height: 8),
+              Flexible(
+                child: ListView.separated(
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  separatorBuilder: (_, __) =>
+                      const Divider(height: 1, color: Color(0xFFE2E8F0)),
+                  itemBuilder: (ctx, index) {
+                    final option = options[index];
+                    final isSelected = option.id == selectedVariationId;
+                    return ListTile(
+                      title: Text(option.label),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: Color(0xFFE71D24),
+                            )
+                          : null,
+                      onTap: () => Navigator.of(sheetContext).pop(option.id),
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
+        );
+      },
+    );
+
+    if (!mounted || picked == null) return;
+    setState(() {
+      _selectedVariationByProduct[productId] = picked;
+    });
+  }
+
+  Widget _buildPackageCartSection({
+    required int productId,
+    required double baseProductPrice,
+    required double selectedTotal,
+    required bool isVariableProduct,
+    int? selectedVariationId,
+    String? selectedVariationLabel,
+    bool variationRequiredButMissing = false,
+  }) {
+    return Selector<CartProvider, _PackageCartUiState>(
+      selector: (context, cartProvider) {
+        final variationIds = _variationIdsByProduct[productId] ?? const <int>{};
+        final cartItem = cartProvider.cartItems.cast<dynamic>().firstWhere((
+          item,
+        ) {
+          if (item is! Map) return false;
+          final itemId = _parseInt(item['id']);
+          if (itemId == null) return false;
+
+          if (!isVariableProduct) {
+            return itemId == productId;
+          }
+
+          if (selectedVariationId != null && selectedVariationId > 0) {
+            final itemVariationId = _parseInt(item['variation_id']);
+            return itemId == selectedVariationId ||
+                itemVariationId == selectedVariationId;
+          }
+
+          return itemId == productId || variationIds.contains(itemId);
+        }, orElse: () => null);
+
+        return _PackageCartUiState(
+          cartQuantity: _extractCartQuantity(cartItem),
+          cartItemKey: (cartItem is Map) ? cartItem['key']?.toString() : null,
+          isQuantityEditable: _isCartItemQuantityEditable(cartItem),
+          isAdding:
+              cartProvider.isAddingProduct(productId) || cartProvider.isLoading,
+        );
+      },
+      builder: (context, cartState, child) {
+        final cartTotal = selectedTotal * cartState.cartQuantity;
+        final needsVariationSelection =
+            isVariableProduct &&
+            (selectedVariationId == null || selectedVariationId <= 0);
+
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            const Text(
+              'هذه الخدمة تُشترى مرة واحدة فقط.',
+              textAlign: TextAlign.center,
+              style: TextStyle(
+                color: Color(0xFF64748B),
+                fontSize: 12,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+            if (selectedVariationLabel != null &&
+                selectedVariationLabel.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  'الفريشن المختار: $selectedVariationLabel',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    color: Color(0xFF334155),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            const SizedBox(height: 10),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Column(
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'السعر',
+                        style: TextStyle(
+                          color: Color(0xFF475569),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      Text(
+                        _formatCurrency(selectedTotal),
+                        style: const TextStyle(
+                          color: Color(0xFF0F172A),
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ],
+                  ),
+                  if (isVariableProduct && selectedTotal != baseProductPrice)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          const Text(
+                            'سعر الباقة الأساسي',
+                            style: TextStyle(
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w600,
+                              fontSize: 12,
+                            ),
+                          ),
+                          Text(
+                            _formatCurrency(baseProductPrice),
+                            style: const TextStyle(
+                              color: Color(0xFF64748B),
+                              fontWeight: FontWeight.w700,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  if (cartState.isInCart) ...[
+                    const SizedBox(height: 6),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'إجمالي الموجود في السلة',
+                          style: TextStyle(
+                            color: Color(0xFF64748B),
+                            fontWeight: FontWeight.w600,
+                            fontSize: 13,
+                          ),
+                        ),
+                        Text(
+                          _formatCurrency(cartTotal),
+                          style: const TextStyle(
+                            color: Color(0xFF1E3A5F),
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ],
+              ),
+            ),
+            if (cartState.isInCart) ...[
+              const SizedBox(height: 12),
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE71D24).withValues(alpha: 0.08),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: const Color(0xFFE71D24).withValues(alpha: 0.35),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const Icon(
+                      Icons.shopping_cart_checkout_rounded,
+                      color: Color(0xFFE71D24),
+                    ),
+                    const SizedBox(width: 8),
+                    const Text(
+                      'مضافة بالفعل في السلة',
+                      style: TextStyle(
+                        color: Color(0xFFE71D24),
+                        fontSize: 15,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+            const SizedBox(height: 12),
+            SizedBox(
+              width: double.infinity,
+              height: 56,
+              child: ElevatedButton(
+                onPressed:
+                    cartState.isAdding ||
+                        cartState.isInCart ||
+                        needsVariationSelection ||
+                        variationRequiredButMissing
+                    ? null
+                    : () async {
+                        final cartProvider = context.read<CartProvider>();
+                        final success = await cartProvider.addToCart(
+                          productId,
+                          1,
+                          variationId: isVariableProduct
+                              ? selectedVariationId
+                              : null,
+                        );
+
+                        if (!context.mounted || success) return;
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                            content: Text('فشل إضافة الباقة للسلة'),
+                            backgroundColor: Colors.red,
+                          ),
+                        );
+                      },
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: const Color(0xFFE71D24),
+                  foregroundColor: Colors.white,
+                  elevation: 0,
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+                child: cartState.isAdding
+                    ? const CircularProgressIndicator(color: Colors.white)
+                    : Text(
+                        cartState.isInCart
+                            ? 'مضافة بالفعل في السلة'
+                            : (variationRequiredButMissing ||
+                                  needsVariationSelection)
+                            ? 'اختر الفريشن أولاً'
+                            : 'أضف للسلة',
+                        style: const TextStyle(
+                          fontSize: 17,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -1010,19 +1488,30 @@ class _PackagesPageState extends State<PackagesPage> {
 }
 
 class _PackageCartUiState {
-  const _PackageCartUiState({required this.isInCart, required this.isAdding});
+  const _PackageCartUiState({
+    required this.cartQuantity,
+    required this.cartItemKey,
+    required this.isQuantityEditable,
+    required this.isAdding,
+  });
 
-  final bool isInCart;
+  final int cartQuantity;
+  final String? cartItemKey;
+  final bool isQuantityEditable;
   final bool isAdding;
+  bool get isInCart => cartQuantity > 0;
 
   @override
   bool operator ==(Object other) {
     if (identical(this, other)) return true;
     return other is _PackageCartUiState &&
-        other.isInCart == isInCart &&
+        other.cartQuantity == cartQuantity &&
+        other.cartItemKey == cartItemKey &&
+        other.isQuantityEditable == isQuantityEditable &&
         other.isAdding == isAdding;
   }
 
   @override
-  int get hashCode => Object.hash(isInCart, isAdding);
+  int get hashCode =>
+      Object.hash(cartQuantity, cartItemKey, isQuantityEditable, isAdding);
 }

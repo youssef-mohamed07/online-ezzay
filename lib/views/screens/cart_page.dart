@@ -27,7 +27,7 @@ class _CartPageState extends State<CartPage> {
     });
   }
 
-  bool _isOrderSuccess(Map<String, dynamic>? result) {
+  bool _isOrderCreated(Map<String, dynamic>? result) {
     if (result == null) return false;
     if (result['code'] != null || result['error'] != null) return false;
 
@@ -39,21 +39,35 @@ class _CartPageState extends State<CartPage> {
       return false;
     }
 
-    final paymentResult = result['payment_result'];
-    if (paymentResult is Map) {
-      final paymentStatus =
-          paymentResult['payment_status']?.toString().toLowerCase() ?? '';
-      if (paymentStatus == 'failure' || paymentStatus == 'failed') {
-        return false;
-      }
-    }
-
     final hasOrderId = result['id'] != null;
     return hasOrderId ||
         status == 'processing' ||
         status == 'completed' ||
         status == 'pending' ||
         status == 'on-hold';
+  }
+
+  bool _isPaymentCompleted(Map<String, dynamic>? result) {
+    if (!_isOrderCreated(result)) return false;
+
+    final status = result?['status']?.toString().toLowerCase() ?? '';
+    if (status == 'processing' || status == 'completed') {
+      return true;
+    }
+
+    final paymentResult = result?['payment_result'];
+    if (paymentResult is Map) {
+      final paymentStatus =
+          paymentResult['payment_status']?.toString().toLowerCase() ?? '';
+      if (paymentStatus == 'success' || paymentStatus == 'succeeded') {
+        return true;
+      }
+      if (paymentStatus == 'failure' || paymentStatus == 'failed') {
+        return false;
+      }
+    }
+
+    return false;
   }
 
   String _extractOrderError(Map<String, dynamic>? result) {
@@ -75,7 +89,8 @@ class _CartPageState extends State<CartPage> {
         combined.contains('registration-error-email-exists') ||
         combined.contains('تم تسجيل حساب بالفعل') ||
         combined.contains('يحمل') && combined.contains('البريد')) {
-      return 'هذا البريد مسجل بالفعل. سجل الدخول أولاً بنفس الحساب ثم أعد الطلب.'.tr;
+      return 'هذا البريد مسجل بالفعل. سجل الدخول أولاً بنفس الحساب ثم أعد الطلب.'
+          .tr;
     }
 
     final paymentResult = result['payment_result'];
@@ -108,8 +123,8 @@ class _CartPageState extends State<CartPage> {
         ? Map<String, dynamic>.from(userData['billing'])
         : <String, dynamic>{};
     final shipping = userData['shipping'] is Map
-      ? Map<String, dynamic>.from(userData['shipping'])
-      : <String, dynamic>{};
+        ? Map<String, dynamic>.from(userData['shipping'])
+        : <String, dynamic>{};
 
     String pick(List<dynamic> values, String fallback) {
       for (final value in values) {
@@ -120,7 +135,7 @@ class _CartPageState extends State<CartPage> {
     }
 
     final guestEmail =
-      'guest_${DateTime.now().millisecondsSinceEpoch}@onlineezzy.app';
+        'guest_${DateTime.now().millisecondsSinceEpoch}@onlineezzy.app';
 
     return {
       'first_name': pick([
@@ -134,36 +149,28 @@ class _CartPageState extends State<CartPage> {
         shipping['last_name'],
         userData['last_name'],
       ], 'Ezzy'),
-      'email': pick([
-        billing['email'],
-        userData['email'],
-      ], guestEmail),
-      'phone': pick([
-        billing['phone'],
-        userData['phone'],
-      ], '0100000000'),
+      'email': pick([billing['email'], userData['email']], guestEmail),
+      'phone': pick([billing['phone'], userData['phone']], '0100000000'),
       'address_1': pick([
         billing['address_1'],
         shipping['address_1'],
       ], 'Online Ezzy'),
-      'city': pick([
-        billing['city'],
-        shipping['city'],
-      ], 'Hebron'),
-      'state': pick([
-        billing['state'],
-        shipping['state'],
-      ], 'Hebron'),
-      'postcode': pick([
-        billing['postcode'],
-        shipping['postcode'],
-      ], '00000'),
+      'city': pick([billing['city'], shipping['city']], 'Hebron'),
+      'state': pick([billing['state'], shipping['state']], 'Hebron'),
+      'postcode': pick([billing['postcode'], shipping['postcode']], '00000'),
       'country': pick([
         billing['country'],
         shipping['country'],
         userData['country'],
       ], 'PS'),
     };
+  }
+
+  Map<String, dynamic> _buildGuestBillingAddress() {
+    final billing = Map<String, dynamic>.from(_buildBillingAddress());
+    billing['email'] =
+        'guest_${DateTime.now().millisecondsSinceEpoch}@onlineezzy.app';
+    return billing;
   }
 
   bool _isCountryRejected(Map<String, dynamic>? result) {
@@ -181,27 +188,33 @@ class _CartPageState extends State<CartPage> {
 
   Future<Map<String, dynamic>?> _checkoutWithCountryFallback(
     CartProvider cartProvider,
-    Map<String, dynamic> checkoutData,
-  ) async {
-    Map<String, dynamic>? attempt = await cartProvider.checkout(checkoutData);
+    Map<String, dynamic> checkoutData, {
+    bool useAuth = true,
+  }) async {
+    Map<String, dynamic>? attempt = await cartProvider.checkout(
+      checkoutData,
+      useAuth: useAuth,
+    );
 
-    if (!_isOrderSuccess(attempt) && _isCountryRejected(attempt)) {
-      final currentBilling =
-          Map<String, dynamic>.from(checkoutData['billing_address'] as Map<String, dynamic>);
-      final currentCountry = currentBilling['country']?.toString().toUpperCase() ?? '';
+    if (!_isOrderCreated(attempt) && _isCountryRejected(attempt)) {
+      final currentBilling = Map<String, dynamic>.from(
+        checkoutData['billing_address'] as Map<String, dynamic>,
+      );
+      final currentCountry =
+          currentBilling['country']?.toString().toUpperCase() ?? '';
 
       if (currentCountry.isEmpty || currentCountry == 'EG') {
         currentBilling['country'] = 'PS';
         currentBilling['state'] =
             (currentBilling['state']?.toString().isNotEmpty ?? false)
-                ? currentBilling['state']
-                : 'Hebron';
+            ? currentBilling['state']
+            : 'Hebron';
 
         final retryCheckout = {
           ...checkoutData,
           'billing_address': currentBilling,
         };
-        attempt = await cartProvider.checkout(retryCheckout);
+        attempt = await cartProvider.checkout(retryCheckout, useAuth: useAuth);
       }
     }
 
@@ -227,81 +240,74 @@ class _CartPageState extends State<CartPage> {
     return int.tryParse(quantityRaw?.toString() ?? '1') ?? 1;
   }
 
-  int _calculateStripeAmountMinor(List<dynamic> items) {
-    int totalMinor = 0;
+  double _safeParseMajor(dynamic value) {
+    final raw = value?.toString().trim().replaceAll(',', '.') ?? '';
+    final parsed = double.tryParse(raw);
+    if (parsed == null || parsed.isNaN || parsed.isInfinite || parsed < 0) {
+      return 0;
+    }
+    return parsed;
+  }
+
+  double _extractUnitPrice(Map<String, dynamic> item) {
+    final prices = item['prices'];
+    if (prices is Map) {
+      final minor = int.tryParse(prices['price']?.toString() ?? '');
+      if (minor != null && minor >= 0) {
+        return minor / 100;
+      }
+    }
+    return _safeParseMajor(item['price']);
+  }
+
+  double _extractLineTotal(Map<String, dynamic> item, int quantity) {
+    final totals = item['totals'];
+    if (totals is Map) {
+      final lineMinor = int.tryParse(totals['line_total']?.toString() ?? '');
+      final lineTaxMinor =
+          int.tryParse(totals['line_total_tax']?.toString() ?? '0') ?? 0;
+      if (lineMinor != null && lineMinor >= 0) {
+        return (lineMinor + lineTaxMinor) / 100;
+      }
+    }
+
+    return _extractUnitPrice(item) * quantity;
+  }
+
+  double _calculateCartTotalMajor(List<dynamic> items) {
+    double total = 0;
 
     for (final raw in items) {
       if (raw is! Map) continue;
       final item = Map<String, dynamic>.from(raw);
       final quantity = _extractItemQuantity(item);
-
-      final prices = item['prices'];
-      final unitMinor =
-          prices is Map
-              ? int.tryParse(prices['price']?.toString() ?? '')
-              : null;
-
-      if (unitMinor != null && unitMinor > 0) {
-        totalMinor += unitMinor * quantity;
-        continue;
-      }
-
-      final fallbackUnit = double.tryParse(item['price']?.toString() ?? '');
-      if (fallbackUnit != null && fallbackUnit > 0) {
-        totalMinor += (fallbackUnit * 100).round() * quantity;
-      }
+      total += _extractLineTotal(item, quantity);
     }
 
-    // Keep a non-zero minimal amount to avoid Stripe invalid amount errors.
-    return totalMinor > 0 ? totalMinor : 100;
+    return total;
   }
 
-  Future<Map<String, dynamic>?> _checkoutStripeViaApi(
-    CartProvider cartProvider,
-    Map<String, dynamic> baseCheckoutData,
-  ) async {
-    final amountMinor = _calculateStripeAmountMinor(cartProvider.cartItems);
-
-    final paymentIntent = await cartProvider.createPaymentIntent(
-      amountMinor,
-      'usd',
-      'pm_card_visa',
-    );
-
-    final paymentIntentId = paymentIntent?['id']?.toString() ?? '';
-    if (paymentIntentId.isNotEmpty) {
-      await cartProvider.confirmPaymentIntent(paymentIntentId, {
-        'payment_method': 'pm_card_visa',
-        'return_url': 'https://demo.onlineezzy.com',
-      });
-    }
-
-    final checkoutData = {
-      ...baseCheckoutData,
-      'payment_method': 'stripe',
-      'payment_data': const [
-        {'key': 'stripe_source', 'value': 'pm_card_visa'},
-      ],
-    };
-
-    return _checkoutWithCountryFallback(cartProvider, checkoutData);
+  String _formatPrice(double value) {
+    if (value % 1 == 0) return value.toStringAsFixed(0);
+    return value.toStringAsFixed(2);
   }
 
-  Future<Map<String, dynamic>?> _checkoutStripeViaWebView(
+  String _formatCurrency(double value) => '${_formatPrice(value)} دولار';
+
+  Future<Map<String, dynamic>?> _checkoutViaWebView(
     CartProvider cartProvider,
     Map<String, dynamic> baseCheckoutData,
+    String paymentMethod,
   ) async {
-    final checkoutData = {
-      ...baseCheckoutData,
-      'payment_method': 'stripe',
-    };
+    final checkoutData = {...baseCheckoutData, 'payment_method': paymentMethod};
 
     final firstAttempt = await _checkoutWithCountryFallback(
       cartProvider,
       checkoutData,
+      useAuth: false,
     );
 
-    if (_isOrderSuccess(firstAttempt)) {
+    if (_isPaymentCompleted(firstAttempt)) {
       return firstAttempt;
     }
 
@@ -323,23 +329,26 @@ class _CartPageState extends State<CartPage> {
 
       if (orderId != null && orderId.isNotEmpty) {
         final latestOrder = await ApiService.getOrder(orderId);
-        final latestStatus = latestOrder?['status']?.toString().toLowerCase() ?? '';
+        final latestStatus =
+            latestOrder?['status']?.toString().toLowerCase() ?? '';
         if (latestStatus.isNotEmpty) {
           normalized['status'] = latestStatus;
-          final paidStatuses = {'processing', 'completed', 'on-hold', 'pending'};
+          final paidStatuses = {'processing', 'completed'};
           normalized['payment_result'] = {
             'payment_status': paidStatuses.contains(latestStatus)
                 ? 'success'
-                : 'failure',
+                : 'pending',
           };
           return normalized;
         }
       }
 
-      normalized['status'] = 'processing';
-      normalized['payment_result'] = {
-        'payment_status': 'success',
-      };
+      final currentStatus =
+          normalized['status']?.toString().toLowerCase() ?? '';
+      normalized['status'] = currentStatus.isNotEmpty
+          ? currentStatus
+          : 'pending';
+      normalized['payment_result'] = {'payment_status': 'pending'};
       return normalized;
     }
 
@@ -379,11 +388,20 @@ class _CartPageState extends State<CartPage> {
             }
 
             final cartItems = cartProvider.cartItems;
+            final cartTotal = _calculateCartTotalMajor(cartItems);
             final knownMethods = cartProvider.availablePaymentMethods;
             final hasKnownMethods = knownMethods.isNotEmpty;
-            final hasStripe = !hasKnownMethods || knownMethods.contains('stripe');
-            final hasDirect = !hasKnownMethods ||
-              knownMethods.any((m) => m == 'bacs' || m == 'cod');
+            final hasStripe =
+                !hasKnownMethods || knownMethods.contains('stripe');
+            final hasDirect =
+                !hasKnownMethods ||
+                knownMethods.any((m) => m == 'bacs' || m == 'cod');
+
+            final checkoutHelpText =
+                _selectedCheckoutMethod == _CheckoutMethod.stripe
+                ? 'سيتم فتح صفحة Stripe الآمنة داخل نافذة مدمجة، وبعد الرجوع سنراجع حالة الطلب من المتجر.'
+                      .tr
+                : 'طلب مباشر بدون دفع إلكتروني من داخل التطبيق.'.tr;
 
             if (cartItems.isEmpty) {
               return const Center(
@@ -406,7 +424,10 @@ class _CartPageState extends State<CartPage> {
                     alignment: Alignment.center,
                     child: TextButton.icon(
                       onPressed: () {
-                         Provider.of<CartProvider>(context, listen: false).clearCart();
+                        Provider.of<CartProvider>(
+                          context,
+                          listen: false,
+                        ).clearCart();
                       },
                       icon: const Icon(
                         Icons.refresh,
@@ -465,7 +486,8 @@ class _CartPageState extends State<CartPage> {
                           title: 'الدفع بالبطاقة (Stripe)',
                           iconData: Icons.credit_card_rounded,
                           iconColor: const Color(0xFF0EA5E9),
-                          selected: _selectedCheckoutMethod == _CheckoutMethod.stripe,
+                          selected:
+                              _selectedCheckoutMethod == _CheckoutMethod.stripe,
                           enabled: hasStripe,
                           onTap: () {
                             setState(() {
@@ -477,7 +499,8 @@ class _CartPageState extends State<CartPage> {
                           title: 'طلب مباشر عبر النظام',
                           iconData: Icons.verified_rounded,
                           iconColor: const Color(0xFFE71D24),
-                          selected: _selectedCheckoutMethod == _CheckoutMethod.direct,
+                          selected:
+                              _selectedCheckoutMethod == _CheckoutMethod.direct,
                           enabled: hasDirect,
                           onTap: () {
                             setState(() {
@@ -487,12 +510,43 @@ class _CartPageState extends State<CartPage> {
                         ),
                         const SizedBox(height: 8),
                         Text(
-                          _selectedCheckoutMethod == _CheckoutMethod.stripe
-                            ? 'سيتم تنفيذ الدفع مباشرة عبر Stripe ثم إنشاء الطلب تلقائيًا (مع تحويل آمن احتياطي عند الحاجة).'.tr
-                              : 'طلب مباشر بدون دفع إلكتروني من داخل التطبيق.'.tr,
+                          checkoutHelpText,
                           style: const TextStyle(
                             fontSize: 12,
                             color: Color(0xFF64748B),
+                          ),
+                        ),
+                        const SizedBox(height: 14),
+                        Container(
+                          width: double.infinity,
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 10,
+                          ),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFFF8FAFC),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                          ),
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'الإجمالي النهائي',
+                                style: TextStyle(
+                                  color: Color(0xFF475569),
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              Text(
+                                _formatCurrency(cartTotal),
+                                style: const TextStyle(
+                                  color: Color(0xFF1E3A5F),
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
                       ],
@@ -506,6 +560,10 @@ class _CartPageState extends State<CartPage> {
         ),
         bottomSheet: Consumer<CartProvider>(
           builder: (context, cartProvider, child) {
+            final cartTotal = _calculateCartTotalMajor(cartProvider.cartItems);
+            final isDirectFlow =
+                _selectedCheckoutMethod == _CheckoutMethod.direct;
+
             return Container(
               padding: const EdgeInsets.only(
                 left: 16,
@@ -518,7 +576,8 @@ class _CartPageState extends State<CartPage> {
                 width: double.infinity,
                 height: 55,
                 child: ElevatedButton(
-                  onPressed: cartProvider.cartItems.isEmpty || _isProcessingPayment
+                  onPressed:
+                      cartProvider.cartItems.isEmpty || _isProcessingPayment
                       ? null
                       : () async {
                           setState(() {
@@ -526,36 +585,36 @@ class _CartPageState extends State<CartPage> {
                           });
 
                           ScaffoldMessenger.of(context).showSnackBar(
-                            SnackBar(
-                              content: Text('جاري إنشاء الطلب...'.tr),
-                            ),
+                            SnackBar(content: Text('جاري إنشاء الطلب...'.tr)),
                           );
+
                           try {
                             final baseCheckoutData = {
-                              'billing_address': _buildBillingAddress(),
+                              'billing_address':
+                                  _selectedCheckoutMethod ==
+                                      _CheckoutMethod.stripe
+                                  ? _buildGuestBillingAddress()
+                                  : _buildBillingAddress(),
                               'create_account': false,
                             };
 
                             Map<String, dynamic>? result;
-                            final availableMethods =
-                                await cartProvider.refreshAvailablePaymentMethods();
+                            final availableMethods = await cartProvider
+                                .refreshAvailablePaymentMethods();
 
-                            if (_selectedCheckoutMethod == _CheckoutMethod.stripe) {
+                            if (_selectedCheckoutMethod ==
+                                _CheckoutMethod.stripe) {
                               if (!availableMethods.contains('stripe')) {
-                                throw Exception('Stripe غير متاح حالياً من إعدادات المتجر'.tr);
-                              }
-
-                              result = await _checkoutStripeViaApi(
-                                cartProvider,
-                                baseCheckoutData,
-                              );
-
-                              if (!_isOrderSuccess(result)) {
-                                result = await _checkoutStripeViaWebView(
-                                  cartProvider,
-                                  baseCheckoutData,
+                                throw Exception(
+                                  'Stripe غير متاح حالياً من إعدادات المتجر'.tr,
                                 );
                               }
+
+                              result = await _checkoutViaWebView(
+                                cartProvider,
+                                baseCheckoutData,
+                                'stripe',
+                              );
                             } else {
                               final directMethods = <String>[];
                               if (availableMethods.contains('cod')) {
@@ -565,7 +624,9 @@ class _CartPageState extends State<CartPage> {
                                 directMethods.add('bacs');
                               }
                               if (directMethods.isEmpty) {
-                                throw Exception('لا توجد طريقة طلب مباشر متاحة حالياً'.tr);
+                                throw Exception(
+                                  'لا توجد طريقة طلب مباشر متاحة حالياً'.tr,
+                                );
                               }
 
                               for (final method in directMethods) {
@@ -573,32 +634,54 @@ class _CartPageState extends State<CartPage> {
                                   ...baseCheckoutData,
                                   'payment_method': method,
                                 };
-                                final attempt = await _checkoutWithCountryFallback(
-                                  cartProvider,
-                                  checkoutData,
-                                );
+                                final attempt =
+                                    await _checkoutWithCountryFallback(
+                                      cartProvider,
+                                      checkoutData,
+                                    );
                                 result = attempt;
-                                if (_isOrderSuccess(attempt)) break;
+                                if (_isOrderCreated(attempt)) break;
                               }
                             }
 
                             if (!context.mounted) return;
 
                             ScaffoldMessenger.of(context).hideCurrentSnackBar();
-                            if (_isOrderSuccess(result) && result != null) {
-                              final orderId = result['id']?.toString();
-                              final successText =
-                                  _selectedCheckoutMethod == _CheckoutMethod.stripe
-                                      ? (orderId != null
-                                          ? 'تم الدفع بنجاح وإنشاء الطلب! رقم الطلب: $orderId'
-                                          : 'تم الدفع بنجاح وإنشاء الطلب!')
-                                      : (orderId != null
-                                          ? 'تم إنشاء الطلب بنجاح! رقم الطلب: $orderId'
-                                          : 'تم إنشاء الطلب بنجاح!');
+                            final orderCreated = _isOrderCreated(result);
+                            final paymentCompleted = _isPaymentCompleted(
+                              result,
+                            );
+
+                            if ((isDirectFlow && orderCreated) ||
+                                (!isDirectFlow && paymentCompleted)) {
+                              final orderId = result?['id']?.toString();
+                              final isPaidFlow =
+                                  _selectedCheckoutMethod !=
+                                  _CheckoutMethod.direct;
+                              final successText = isPaidFlow
+                                  ? (orderId != null
+                                        ? 'تم الدفع بنجاح وإنشاء الطلب! رقم الطلب: $orderId'
+                                        : 'تم الدفع بنجاح وإنشاء الطلب!')
+                                  : (orderId != null
+                                        ? 'تم إنشاء الطلب بنجاح! رقم الطلب: $orderId'
+                                        : 'تم إنشاء الطلب بنجاح!');
                               ScaffoldMessenger.of(context).showSnackBar(
                                 SnackBar(
                                   content: Text(successText.tr),
                                   backgroundColor: Colors.green,
+                                ),
+                              );
+                            } else if (!isDirectFlow &&
+                                orderCreated &&
+                                result != null) {
+                              final orderId = result['id']?.toString();
+                              final pendingText = orderId != null
+                                  ? 'تم إنشاء الطلب رقم $orderId لكن الدفع لم يتأكد بعد. أكمل الدفع من صفحة الدفع.'
+                                  : 'تم إنشاء الطلب لكن الدفع لم يتأكد بعد. أكمل الدفع من صفحة الدفع.';
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(pendingText.tr),
+                                  backgroundColor: Colors.orange,
                                 ),
                               );
                             } else {
@@ -614,7 +697,9 @@ class _CartPageState extends State<CartPage> {
                             ScaffoldMessenger.of(context).hideCurrentSnackBar();
                             ScaffoldMessenger.of(context).showSnackBar(
                               SnackBar(
-                                content: Text('فشل إتمام الطلب: ${e.toString()}'),
+                                content: Text(
+                                  'فشل إتمام الطلب: ${e.toString()}',
+                                ),
                                 backgroundColor: Colors.red,
                               ),
                             );
@@ -635,12 +720,12 @@ class _CartPageState extends State<CartPage> {
                   ),
                   child: Text(
                     _isProcessingPayment
-                        ? (_selectedCheckoutMethod == _CheckoutMethod.stripe
-                            ? 'جاري الدفع وإنشاء الطلب...'.tr
-                            : 'جاري إنشاء الطلب...'.tr)
-                        : (_selectedCheckoutMethod == _CheckoutMethod.stripe
-                            ? 'ادفع الآن'.tr
-                            : 'تأكيد الطلب'.tr),
+                        ? (isDirectFlow
+                              ? 'جاري إنشاء الطلب...'.tr
+                              : 'جاري الدفع وإنشاء الطلب...'.tr)
+                        : (isDirectFlow
+                              ? 'تأكيد الطلب (${_formatCurrency(cartTotal)})'.tr
+                              : 'ادفع الآن (${_formatCurrency(cartTotal)})'.tr),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -657,28 +742,20 @@ class _CartPageState extends State<CartPage> {
   }
 
   Widget _buildCartItem(dynamic item) {
-    // Assuming WooCommerce Store API response structure
-    final id = item['key'] ?? item['id']?.toString() ?? '';
-    final title = item['name'] ?? 'منتج';
-    final subtitle = item['description'] ?? '';
+    final itemMap = item is Map
+        ? Map<String, dynamic>.from(item)
+        : <String, dynamic>{};
 
-    var rawPrice = '0';
-    if (item['prices'] != null && item['prices']['price'] != null) {
-      rawPrice = (int.parse(item['prices']['price'].toString()) / 100)
-          .toString(); // often in cents
-    } else if (item['price'] != null) {
-      rawPrice = item['price'].toString();
-    }
+    final id = itemMap['key']?.toString() ?? itemMap['id']?.toString() ?? '';
+    final title = itemMap['name']?.toString() ?? 'منتج';
+    final subtitle = itemMap['description']?.toString() ?? '';
+    final quantity = _extractItemQuantity(itemMap);
+    final unitPrice = _extractUnitPrice(itemMap);
+    final lineTotal = _extractLineTotal(itemMap, quantity);
 
-    final quantityRaw = item['quantity'];
-    final quantity = quantityRaw is Map
-      ? int.tryParse((quantityRaw['value'] ?? '1').toString()) ?? 1
-      : int.tryParse(quantityRaw?.toString() ?? '1') ?? 1;
-
-    // images
     var imageUrl = '';
-    if (item['images'] != null && item['images'].isNotEmpty) {
-      imageUrl = item['images'][0]['src'] ?? '';
+    if (itemMap['images'] != null && itemMap['images'].isNotEmpty) {
+      imageUrl = itemMap['images'][0]['src'] ?? '';
     }
 
     return Container(
@@ -743,6 +820,15 @@ class _CartPageState extends State<CartPage> {
                         overflow: TextOverflow.ellipsis,
                       ),
                     ],
+                    const SizedBox(height: 4),
+                    Text(
+                      'الكمية: $quantity × ${_formatCurrency(unitPrice)}',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -780,7 +866,7 @@ class _CartPageState extends State<CartPage> {
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               const Text(
-                'السعر',
+                'الإجمالي',
                 style: TextStyle(
                   color: Colors.grey,
                   fontSize: 14,
@@ -790,7 +876,7 @@ class _CartPageState extends State<CartPage> {
               Row(
                 children: [
                   Text(
-                    '${(double.tryParse(rawPrice) ?? 0) * quantity}',
+                    _formatCurrency(lineTotal),
                     style: const TextStyle(
                       color: Color(0xFF1E3A5F),
                       fontSize: 16,
@@ -826,7 +912,9 @@ class _CartPageState extends State<CartPage> {
             children: [
               Icon(
                 selected ? Icons.radio_button_checked : Icons.radio_button_off,
-                color: selected ? const Color(0xFFE71D24) : const Color(0xFF94A3B8),
+                color: selected
+                    ? const Color(0xFFE71D24)
+                    : const Color(0xFF94A3B8),
                 size: 22,
               ),
               const SizedBox(width: 10),
