@@ -98,6 +98,10 @@ class CartProvider extends ChangeNotifier {
     return _availablePaymentMethods;
   }
 
+  Future<void> refreshCart() async {
+    await _loadCart();
+  }
+
   bool _isCheckoutSuccess(Map<String, dynamic> response) {
     final status = response['status']?.toString().toLowerCase();
     final hasError = response['code'] != null || response['error'] != null;

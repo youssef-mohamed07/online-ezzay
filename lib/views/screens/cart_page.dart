@@ -25,7 +25,9 @@ class _CartPageState extends State<CartPage> {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<CartProvider>().refreshAvailablePaymentMethods();
+      final cartProvider = context.read<CartProvider>();
+      cartProvider.refreshCart();
+      cartProvider.refreshAvailablePaymentMethods();
     });
   }
 

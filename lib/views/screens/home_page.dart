@@ -1483,38 +1483,58 @@ class _AddressCardsRowState extends State<_AddressCardsRow> {
                           final isAddingThis = cartProvider.isAddingProduct(
                             productId,
                           );
-                          return ElevatedButton(
+                          return ElevatedButton.icon(
                             onPressed: isAddingThis
                                 ? null
                                 : () async {
-                                    if (isInCart) {
+                                    print('🛒 Home: Buy Now button pressed');
+                                    // إذا المنتج مش في السلة، نضيفه ونستنى
+                                    if (!isInCart) {
+                                      print('🛒 Home: Adding product to cart...');
+                                      final success = await cartProvider.addToCart(productId, 1);
+                                      print('🛒 Home: Add to cart result: $success');
+                                      
+                                      if (!success) {
+                                        if (context.mounted) {
+                                          ScaffoldMessenger.of(context).showSnackBar(
+                                            const SnackBar(
+                                              content: Text('فشل إضافة المنتج للسلة'),
+                                              backgroundColor: Colors.red,
+                                            ),
+                                          );
+                                        }
+                                        return;
+                                      }
+                                      
+                                      // نستنى شوية عشان الكارت يتحدث
+                                      await Future.delayed(const Duration(milliseconds: 300));
+                                    }
+                                    
+                                    // نروح على صفحة السلة
+                                    if (context.mounted) {
+                                      print('🛒 Home: Navigating to cart page...');
                                       Navigator.of(context).push(
                                         MaterialPageRoute(
-                                          builder: (_) => const CartPage(),
+                                          builder: (_) => CartPage(),
                                         ),
                                       );
-                                      return;
                                     }
-                                    await cartProvider.addToCart(productId, 1);
                                   },
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: isInCart
-                                  ? const Color(0xFFF1F5F9)
-                                  : const Color(0xFFE71D24),
-                              foregroundColor: isInCart
-                                  ? const Color(0xFF1E293B)
-                                  : Colors.white,
+                              backgroundColor: const Color(0xFF10B981),
+                              foregroundColor: Colors.white,
                               shape: RoundedRectangleBorder(
                                 borderRadius: BorderRadius.circular(10),
                               ),
-                              side: isInCart
-                                  ? const BorderSide(color: Color(0xFFE2E8F0))
-                                  : BorderSide.none,
-                              padding: const EdgeInsets.symmetric(vertical: 0),
+                              padding: const EdgeInsets.symmetric(vertical: 0, horizontal: 8),
                               minimumSize: const Size(double.infinity, 36),
                               elevation: 0,
                             ),
-                            child: isAddingThis
+                            icon: Icon(
+                              isInCart ? Icons.shopping_cart : Icons.shopping_cart_checkout,
+                              size: 16,
+                            ),
+                            label: isAddingThis
                                 ? const SizedBox(
                                     width: 16,
                                     height: 16,
@@ -1524,7 +1544,7 @@ class _AddressCardsRowState extends State<_AddressCardsRow> {
                                     ),
                                   )
                                 : Text(
-                                    isInCart ? 'اذهب للسلة' : 'اطلب الآن',
+                                    'اشتري دلوقتي',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,

@@ -5,6 +5,7 @@ import 'package:online_ezzy/providers/product_provider.dart';
 import 'package:online_ezzy/providers/cart_provider.dart';
 import 'package:online_ezzy/providers/settings_provider.dart';
 import 'package:online_ezzy/widgets/cached_image.dart';
+import 'package:online_ezzy/views/screens/cart_page.dart';
 
 class PackagesPage extends StatefulWidget {
   const PackagesPage({
@@ -1381,65 +1382,144 @@ class _PackagesPageState extends State<PackagesPage> {
               ),
             ],
             const SizedBox(height: 12),
-            SizedBox(
-              width: double.infinity,
-              height: 56,
-              child: ElevatedButton(
-                onPressed:
-                    cartState.isAdding ||
-                        cartState.isInCart ||
-                        needsVariationSelection ||
-                        variationRequiredButMissing
-                    ? null
-                    : () async {
-                        print('🎯 Add to cart button pressed');
-                        print('🎯 productId: $productId');
-                        print('🎯 isVariableProduct: $isVariableProduct');
-                        print('🎯 selectedVariationId: $selectedVariationId');
-                        print('🎯 needsVariationSelection: $needsVariationSelection');
-                        print('🎯 variationRequiredButMissing: $variationRequiredButMissing');
-                        
-                        final cartProvider = context.read<CartProvider>();
-                        final success = await cartProvider.addToCart(
-                          productId,
-                          1,
-                          variationId: isVariableProduct
-                              ? selectedVariationId
-                              : null,
-                        );
+            Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 56,
+                    child: ElevatedButton(
+                      onPressed:
+                          cartState.isAdding ||
+                              cartState.isInCart ||
+                              needsVariationSelection ||
+                              variationRequiredButMissing
+                          ? null
+                          : () async {
+                              print('🎯 Add to cart button pressed');
+                              print('🎯 productId: $productId');
+                              print('🎯 isVariableProduct: $isVariableProduct');
+                              print('🎯 selectedVariationId: $selectedVariationId');
+                              print('🎯 needsVariationSelection: $needsVariationSelection');
+                              print('🎯 variationRequiredButMissing: $variationRequiredButMissing');
+                              
+                              final cartProvider = context.read<CartProvider>();
+                              final success = await cartProvider.addToCart(
+                                productId,
+                                1,
+                                variationId: isVariableProduct
+                                    ? selectedVariationId
+                                    : null,
+                              );
 
-                        print('🎯 Add to cart result: $success');
-                        if (!context.mounted || success) return;
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text('فشل إضافة الباقة للسلة'),
-                            backgroundColor: Colors.red,
-                          ),
-                        );
-                      },
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: const Color(0xFFE71D24),
-                  foregroundColor: Colors.white,
-                  elevation: 0,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
+                              print('🎯 Add to cart result: $success');
+                              if (!context.mounted || success) return;
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                const SnackBar(
+                                  content: Text('فشل إضافة الباقة للسلة'),
+                                  backgroundColor: Colors.red,
+                                ),
+                              );
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFFE71D24),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: cartState.isAdding
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : Text(
+                              cartState.isInCart
+                                  ? 'في السلة'
+                                  : (variationRequiredButMissing ||
+                                        needsVariationSelection)
+                                  ? 'اختر الفريشن'
+                                  : 'أضف للسلة',
+                              style: const TextStyle(
+                                fontSize: 15,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                    ),
                   ),
                 ),
-                child: cartState.isAdding
-                    ? const CircularProgressIndicator(color: Colors.white)
-                    : Text(
-                        cartState.isInCart
-                            ? 'مضافة بالفعل في السلة'
-                            : (variationRequiredButMissing ||
-                                  needsVariationSelection)
-                            ? 'اختر الفريشن أولاً'
-                            : 'أضف للسلة',
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 2,
+                  child: SizedBox(
+                    height: 56,
+                    child: ElevatedButton.icon(
+                      onPressed:
+                          cartState.isAdding ||
+                              needsVariationSelection ||
+                              variationRequiredButMissing
+                          ? null
+                          : () async {
+                              print('🛒 Buy Now button pressed');
+                              final cartProvider = context.read<CartProvider>();
+                              
+                              // إذا المنتج مش في السلة، نضيفه ونستنى
+                              if (!cartState.isInCart) {
+                                print('🛒 Adding product to cart...');
+                                final success = await cartProvider.addToCart(
+                                  productId,
+                                  1,
+                                  variationId: isVariableProduct
+                                      ? selectedVariationId
+                                      : null,
+                                );
+                                
+                                print('🛒 Add to cart result: $success');
+                                
+                                if (!success) {
+                                  if (context.mounted) {
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                        content: Text('فشل إضافة المنتج للسلة'),
+                                        backgroundColor: Colors.red,
+                                      ),
+                                    );
+                                  }
+                                  return;
+                                }
+                                
+                                // نستنى شوية عشان الكارت يتحدث
+                                await Future.delayed(const Duration(milliseconds: 300));
+                              }
+                              
+                              // نروح على صفحة السلة
+                              if (context.mounted) {
+                                print('🛒 Navigating to cart page...');
+                                Navigator.of(context).push(
+                                  MaterialPageRoute(
+                                    builder: (_) => CartPage(),
+                                  ),
+                                );
+                              }
+                            },
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF10B981),
+                        foregroundColor: Colors.white,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      icon: const Icon(Icons.shopping_cart_checkout, size: 20),
+                      label: Text(
+                        'اشتري دلوقتي',
                         style: const TextStyle(
-                          fontSize: 17,
+                          fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-              ),
+                    ),
+                  ),
+                ),
+              ],
             ),
           ],
         );
