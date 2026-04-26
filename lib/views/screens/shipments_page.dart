@@ -6,6 +6,7 @@ import 'package:online_ezzy/providers/shipment_provider.dart';
 import 'package:online_ezzy/views/screens/shipment_details_page.dart';
 import 'package:online_ezzy/views/screens/notifications_page.dart';
 import 'package:online_ezzy/views/screens/track_page.dart';
+import 'package:online_ezzy/widgets/cached_image.dart';
 
 class ShipmentsPage extends StatefulWidget {
   const ShipmentsPage({super.key});
@@ -423,25 +424,12 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
               ),
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
-                child: imageUrl.isNotEmpty
-                    ? Image.network(
-                        imageUrl,
-                        width: 70,
-                        height: 70,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          width: 70,
-                          height: 70,
-                          color: const Color(0xFFF1F5F9),
-                          child: const Icon(Icons.inventory_2_outlined),
-                        ),
-                      )
-                    : Container(
-                        width: 70,
-                        height: 70,
-                        color: const Color(0xFFF1F5F9),
-                        child: const Icon(Icons.inventory_2_outlined),
-                      ),
+                child: CachedImage(
+                  imageUrl: imageUrl,
+                  width: 70,
+                  height: 70,
+                  fit: BoxFit.cover,
+                ),
               ),
             ],
           ),

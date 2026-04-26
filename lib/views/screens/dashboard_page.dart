@@ -6,6 +6,7 @@ import 'package:online_ezzy/providers/auth_provider.dart';
 import 'package:online_ezzy/providers/dashboard_provider.dart';
 import 'package:online_ezzy/providers/shipment_provider.dart';
 import 'package:online_ezzy/data/real_images.dart';
+import 'package:online_ezzy/widgets/cached_image.dart';
 
 import 'cart_page.dart';
 import 'contact_us_page.dart';
@@ -141,10 +142,16 @@ class _DashboardPageState extends State<DashboardPage> {
           builder: (context, auth, dashboardProvider, shipmentProvider, _) {
             final dashboardData = dashboardProvider.dashboardData;
             final shipments = shipmentProvider.shipments;
-            List<String> bannerImages = dashboardProvider.sliders
-                .map((s) => (s['image'] ?? '').toString())
-                .where((url) => url.trim().isNotEmpty)
-                .toList();
+            List<String> bannerImages = [];
+            try {
+              bannerImages = dashboardProvider.sliders
+                  .where((s) => s != null)
+                  .map((s) => s.toString())
+                  .where((url) => url.trim().isNotEmpty)
+                  .toList();
+            } catch (e) {
+              print('Error processing sliders: $e');
+            }
 
             if (bannerImages.isEmpty) {
               bannerImages = [
@@ -402,19 +409,10 @@ class _DashboardBannerSlider extends StatelessWidget {
               onPageChanged: onPageChanged,
               itemCount: images.length,
               itemBuilder: (context, i) {
-                return Image.network(
-                  images[i],
+                return CachedImage(
+                  imageUrl: images[i],
                   fit: BoxFit.cover,
                   width: double.infinity,
-                  errorBuilder: (_, __, ___) => Container(
-                    color: const Color(0xFFE2E8F0),
-                    alignment: Alignment.center,
-                    child: const Icon(
-                      Icons.image_not_supported_outlined,
-                      color: Color(0xFF64748B),
-                      size: 34,
-                    ),
-                  ),
                 );
               },
             ),

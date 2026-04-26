@@ -1,10 +1,12 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:online_ezzy/widgets/cached_image.dart';
 import 'stripe_checkout_webview_page.dart';
 import '../../core/api_service.dart';
 import '../../providers/cart_provider.dart';
 import '../../providers/auth_provider.dart';
+import '../../providers/settings_provider.dart';
 
 enum _CheckoutMethod { stripe, direct }
 
@@ -292,7 +294,9 @@ class _CartPageState extends State<CartPage> {
     return value.toStringAsFixed(2);
   }
 
-  String _formatCurrency(double value) => '${_formatPrice(value)} دولار';
+  String _formatCurrency(double value, SettingsProvider settings) {
+    return '${_formatPrice(value)} ${settings.currencySymbol}';
+  }
 
   Future<Map<String, dynamic>?> _checkoutViaWebView(
     CartProvider cartProvider,
@@ -379,8 +383,8 @@ class _CartPageState extends State<CartPage> {
           ),
           centerTitle: true,
         ),
-        body: Consumer<CartProvider>(
-          builder: (context, cartProvider, child) {
+        body: Consumer2<CartProvider, SettingsProvider>(
+          builder: (context, cartProvider, settingsProvider, child) {
             if (cartProvider.isLoading) {
               return const Center(
                 child: CircularProgressIndicator(color: Colors.red),
@@ -452,7 +456,7 @@ class _CartPageState extends State<CartPage> {
                     separatorBuilder: (context, index) =>
                         const SizedBox(height: 12),
                     itemBuilder: (context, index) {
-                      return _buildCartItem(cartItems[index]);
+                      return _buildCartItem(cartItems[index], settingsProvider);
                     },
                   ),
                   const SizedBox(height: 24),
@@ -539,7 +543,7 @@ class _CartPageState extends State<CartPage> {
                                 ),
                               ),
                               Text(
-                                _formatCurrency(cartTotal),
+                                _formatCurrency(cartTotal, settingsProvider),
                                 style: const TextStyle(
                                   color: Color(0xFF1E3A5F),
                                   fontWeight: FontWeight.bold,
@@ -558,8 +562,8 @@ class _CartPageState extends State<CartPage> {
             );
           },
         ),
-        bottomSheet: Consumer<CartProvider>(
-          builder: (context, cartProvider, child) {
+        bottomSheet: Consumer2<CartProvider, SettingsProvider>(
+          builder: (context, cartProvider, settingsProvider, child) {
             final cartTotal = _calculateCartTotalMajor(cartProvider.cartItems);
             final isDirectFlow =
                 _selectedCheckoutMethod == _CheckoutMethod.direct;
@@ -724,8 +728,8 @@ class _CartPageState extends State<CartPage> {
                               ? 'جاري إنشاء الطلب...'.tr
                               : 'جاري الدفع وإنشاء الطلب...'.tr)
                         : (isDirectFlow
-                              ? 'تأكيد الطلب (${_formatCurrency(cartTotal)})'.tr
-                              : 'ادفع الآن (${_formatCurrency(cartTotal)})'.tr),
+                              ? 'تأكيد الطلب (${_formatCurrency(cartTotal, settingsProvider)})'.tr
+                              : 'ادفع الآن (${_formatCurrency(cartTotal, settingsProvider)})'.tr),
                     style: TextStyle(
                       fontSize: 18,
                       fontWeight: FontWeight.bold,
@@ -741,17 +745,21 @@ class _CartPageState extends State<CartPage> {
     );
   }
 
-  Widget _buildCartItem(dynamic item) {
+  Widget _buildCartItem(dynamic item, SettingsProvider settings) {
     final itemMap = item is Map
         ? Map<String, dynamic>.from(item)
         : <String, dynamic>{};
 
+    print('🛍️ Cart item data: $itemMap');
+    
     final id = itemMap['key']?.toString() ?? itemMap['id']?.toString() ?? '';
     final title = itemMap['name']?.toString() ?? 'منتج';
     final subtitle = itemMap['description']?.toString() ?? '';
     final quantity = _extractItemQuantity(itemMap);
     final unitPrice = _extractUnitPrice(itemMap);
     final lineTotal = _extractLineTotal(itemMap, quantity);
+    
+    print('🛍️ Extracted - title: $title, subtitle: $subtitle, quantity: $quantity');
 
     var imageUrl = '';
     if (itemMap['images'] != null && itemMap['images'].isNotEmpty) {
@@ -785,14 +793,12 @@ class _CartPageState extends State<CartPage> {
                 ),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: imageUrl.isNotEmpty
-                      ? Image.network(
-                          imageUrl,
-                          fit: BoxFit.cover,
-                          errorBuilder: (context, error, stackTrace) =>
-                              const Icon(Icons.image, color: Colors.grey),
-                        )
-                      : const Icon(Icons.image, color: Colors.grey),
+                  child: CachedImage(
+                    imageUrl: imageUrl,
+                    width: 90,
+                    height: 90,
+                    fit: BoxFit.cover,
+                  ),
                 ),
               ),
               const SizedBox(width: 16),
@@ -822,7 +828,7 @@ class _CartPageState extends State<CartPage> {
                     ],
                     const SizedBox(height: 4),
                     Text(
-                      'الكمية: $quantity × ${_formatCurrency(unitPrice)}',
+                      'الكمية: $quantity × ${_formatCurrency(unitPrice, settings)}',
                       style: const TextStyle(
                         fontSize: 12,
                         color: Color(0xFF64748B),
@@ -876,7 +882,7 @@ class _CartPageState extends State<CartPage> {
               Row(
                 children: [
                   Text(
-                    _formatCurrency(lineTotal),
+                    _formatCurrency(lineTotal, settings),
                     style: const TextStyle(
                       color: Color(0xFF1E3A5F),
                       fontSize: 16,

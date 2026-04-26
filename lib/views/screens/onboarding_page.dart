@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'auth/login_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'shell_page.dart';
 
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
@@ -36,9 +37,16 @@ class _OnboardingPageState extends State<OnboardingPage> {
     super.dispose();
   }
 
-  void _goHome() {
+  void _goHome() async {
+    // حفظ أن المستخدم شاهد الـ Onboarding
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool('onboarding_completed', true);
+    
+    if (!mounted) return;
+    
+    // الذهاب مباشرة إلى الصفحة الرئيسية كضيف
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(builder: (_) => const LoginPage()),
+      MaterialPageRoute<void>(builder: (_) => const ShellPage()),
     );
   }
 

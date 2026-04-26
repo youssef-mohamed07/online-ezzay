@@ -129,12 +129,14 @@ class CartProvider extends ChangeNotifier {
     int quantity, {
     int? variationId,
   }) async {
+    print('📦 CartProvider.addToCart called: productId=$productId, quantity=$quantity, variationId=$variationId');
     _isLoading = true;
     _addingProductIds.add(productId);
     notifyListeners();
 
     try {
       if (_cartToken == null) await _loadCartToken();
+      print('📦 Cart token: $_cartToken');
       final addRes = await ApiService.addCartItemWithMeta(
         productId: productId,
         quantity: quantity,
@@ -143,8 +145,11 @@ class CartProvider extends ChangeNotifier {
       );
       var statusCode = addRes['status_code'] as int? ?? 500;
       String? nextToken = addRes['cart_token']?.toString();
+      print('📦 Add result status: $statusCode');
+      print('📦 Add result data: ${addRes['data']}');
 
       if (statusCode < 200 || statusCode >= 300) {
+        print('📦 First attempt failed, retrying with fresh cart token...');
         // Recover from stale cart session by resetting token and retrying once.
         await _clearStoredCartToken();
         final bootstrap = await ApiService.getCartWithMeta(cartToken: null);
@@ -158,8 +163,11 @@ class CartProvider extends ChangeNotifier {
         );
         statusCode = retryRes['status_code'] as int? ?? 500;
         nextToken = retryRes['cart_token']?.toString();
+        print('📦 Retry result status: $statusCode');
+        print('📦 Retry result data: ${retryRes['data']}');
 
         if (statusCode < 200 || statusCode >= 300) {
+          print('📦 Retry also failed, returning false');
           return false;
         }
       }
@@ -172,6 +180,7 @@ class CartProvider extends ChangeNotifier {
       );
       await _persistCartToken(response['cart_token']?.toString());
       _cartItems = (response['items'] as List<dynamic>? ?? []);
+      print('📦 Cart refreshed, items count: ${_cartItems.length}');
 
       return true;
     } catch (e) {

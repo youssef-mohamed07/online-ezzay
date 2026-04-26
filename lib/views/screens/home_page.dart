@@ -9,6 +9,7 @@ import 'package:online_ezzy/providers/cart_provider.dart';
 import 'package:online_ezzy/providers/dashboard_provider.dart';
 import 'package:online_ezzy/providers/shipment_provider.dart';
 import 'package:online_ezzy/data/real_images.dart';
+import 'package:online_ezzy/widgets/cached_image.dart';
 import 'packages_page.dart';
 import 'cart_page.dart';
 import 'track_page.dart';
@@ -123,9 +124,16 @@ class _HomePageState extends State<HomePage> {
                   );
                 }
 
-                List<String> images = dashboard.sliders
-                    .map<String>((s) => s['image'].toString())
-                    .toList();
+                List<String> images = [];
+                try {
+                  images = dashboard.sliders
+                      .where((s) => s != null)
+                      .map<String>((s) => s.toString())
+                      .where((url) => url.trim().isNotEmpty)
+                      .toList();
+                } catch (e) {
+                  print('Error processing sliders: $e');
+                }
 
                 if (images.isEmpty) {
                   images = [
@@ -656,20 +664,10 @@ class _HeroSlider extends StatelessWidget {
               onPageChanged: onPageChanged,
               itemCount: images.length,
               itemBuilder: (context, i) {
-                return Image.network(
-                  images[i],
+                return CachedImage(
+                  imageUrl: images[i],
                   fit: BoxFit.cover,
                   width: double.infinity,
-                  errorBuilder: (context, error, stackTrace) => Container(
-                    color: Colors.grey.shade300,
-                    child: Center(
-                      child: Icon(
-                        Icons.image_not_supported,
-                        color: Colors.grey,
-                        size: 40,
-                      ),
-                    ),
-                  ),
                 );
               },
             ),

@@ -9,7 +9,7 @@ class ConsultationPage extends StatelessWidget {
   Widget build(BuildContext context) {
     return InAppWebPage(
       title: 'احصل على استشارة',
-      url: AppWebUrls.contact,
+      url: AppWebUrls.consultation,
     );
   }
 }

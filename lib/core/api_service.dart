@@ -385,19 +385,32 @@ class ApiService {
     int? variationId,
     String? cartToken,
   }) async {
-    final query = <String, String>{
-      'id': productId.toString(),
-      'quantity': quantity.toString(),
-    };
-    if (variationId != null && variationId > 0) {
-      query['variation'] = variationId.toString();
-      query['variation_id'] = variationId.toString();
-    }
-    final url = Uri.parse(
-      '$baseUrl/wc/store/v1/cart/items',
-    ).replace(queryParameters: query);
+    print('🛒 Adding to cart: productId=$productId, quantity=$quantity, variationId=$variationId');
+    
+    final url = Uri.parse('$baseUrl/wc/store/v1/cart/items');
     final headers = await _getHeaders(cartToken: cartToken);
-    final response = await http.post(url, headers: headers);
+    
+    // Build request body
+    // For variable products, use the variation ID as the main ID
+    final itemId = (variationId != null && variationId > 0) ? variationId : productId;
+    
+    final body = <String, dynamic>{
+      'id': itemId,
+      'quantity': quantity,
+    };
+    
+    print('🛒 Request URL: $url');
+    print('🛒 Request body: ${jsonEncode(body)}');
+    
+    final response = await http.post(
+      url,
+      headers: headers,
+      body: jsonEncode(body),
+    );
+    
+    print('🛒 Response status: ${response.statusCode}');
+    print('🛒 Response body: ${response.body}');
+    
     final decoded = _safeDecodeBody(response.body);
     return {
       'data': decoded,

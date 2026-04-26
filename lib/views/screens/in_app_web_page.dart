@@ -6,6 +6,18 @@ class AppWebUrls {
     'https://onlineezzy.com/%D8%AA%D9%88%D8%A7%D8%B5%D9%84-%D9%85%D8%B9%D9%86%D8%A7/',
   );
 
+  static final Uri consultation = Uri.parse(
+    'https://onlineezzy.com/%D8%A7%D8%AD%D8%B5%D9%84-%D8%B9%D9%84%D9%89-%D8%A7%D8%B3%D8%AA%D8%B4%D8%A7%D8%B1%D8%A9/',
+  );
+
+  static final Uri poBox = Uri.parse(
+    'https://onlineezzy.com/%D8%B5%D9%86%D8%AF%D9%88%D9%82-%D8%A8%D8%B1%D9%8A%D8%AF%D9%8A/',
+  );
+
+  static final Uri financialServices = Uri.parse(
+    'https://onlineezzy.com/%D8%AE%D8%AF%D9%85%D8%A7%D8%AA-%D9%85%D8%A7%D9%84%D9%8A%D8%A9/',
+  );
+
   static final Uri privacyPolicy = Uri.parse(
     'https://onlineezzy.com/%D8%B3%D9%8A%D8%A7%D8%B3%D8%A9-%D8%A7%D9%84%D8%AE%D8%B5%D9%88%D8%B5%D9%8A%D8%A9/',
   );

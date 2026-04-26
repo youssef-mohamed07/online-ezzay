@@ -3,6 +3,8 @@ import 'package:provider/provider.dart';
 import 'package:online_ezzy/core/api_service.dart';
 import 'package:online_ezzy/providers/product_provider.dart';
 import 'package:online_ezzy/providers/cart_provider.dart';
+import 'package:online_ezzy/providers/settings_provider.dart';
+import 'package:online_ezzy/widgets/cached_image.dart';
 
 class PackagesPage extends StatefulWidget {
   const PackagesPage({
@@ -173,7 +175,9 @@ class _PackagesPageState extends State<PackagesPage> {
     return value.toStringAsFixed(2);
   }
 
-  String _formatCurrency(double value) => '${_formatPrice(value)} دولار';
+  String _formatCurrency(double value, SettingsProvider settings) {
+    return '${_formatPrice(value)} ${settings.currencySymbol}';
+  }
 
   String? _extractRemoteProductImage(Map<String, dynamic> product) {
     final imagesRaw = product['images'];
@@ -279,7 +283,11 @@ class _PackagesPageState extends State<PackagesPage> {
 
   bool _isAddressCategoryId(int id) => _addressCategoryIdSet.contains(id);
 
-  bool get _isAddressHubMode => false;
+  bool get _isAddressHubMode {
+    final ids = widget.categoryIds;
+    if (ids == null || ids.isEmpty) return false;
+    return ids.any(_isAddressCategoryId);
+  }
 
   String _categoryNameById(List<dynamic> categories, int categoryId) {
     for (final cat in categories) {
@@ -331,10 +339,11 @@ class _PackagesPageState extends State<PackagesPage> {
     super.initState();
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final provider = Provider.of<ProductProvider>(context, listen: false);
-      provider.loadDeliveryProducts(
-        categoryId: _packagesOnlyCategoryId,
-        categoryIds: null,
-      );
+      if (widget.categoryIds != null) {
+        provider.loadDeliveryProducts(categoryIds: widget.categoryIds);
+      } else {
+        provider.loadDeliveryProducts(categoryId: widget.categoryId);
+      }
     });
   }
 
@@ -358,8 +367,8 @@ class _PackagesPageState extends State<PackagesPage> {
             ),
           ),
         ),
-        body: Consumer<ProductProvider>(
-          builder: (context, productProvider, child) {
+        body: Consumer2<ProductProvider, SettingsProvider>(
+          builder: (context, productProvider, settingsProvider, child) {
             if (productProvider.isLoading) {
               return const Center(
                 child: CircularProgressIndicator(color: Color(0xFFE71D24)),
@@ -367,14 +376,16 @@ class _PackagesPageState extends State<PackagesPage> {
             }
 
             final isAddressHubPage = _isAddressHubMode;
-            final allProducts = productProvider.deliveryProducts.where((item) {
-              if (item is! Map) return false;
-              final product = Map<String, dynamic>.from(item);
-              return _productBelongsToCategory(
-                product,
-                _packagesOnlyCategoryId,
-              );
-            }).toList();
+            final allProducts = isAddressHubPage
+                ? productProvider.deliveryProducts
+                : productProvider.deliveryProducts.where((item) {
+                    if (item is! Map) return false;
+                    final product = Map<String, dynamic>.from(item);
+                    return _productBelongsToCategory(
+                      product,
+                      widget.categoryId,
+                    );
+                  }).toList();
 
             if (isAddressHubPage) {
               final allCategoryIds = widget.categoryIds ?? const <int>[];
@@ -501,7 +512,7 @@ class _PackagesPageState extends State<PackagesPage> {
                               ),
                               const SizedBox(width: 8),
                               const Text(
-                                'فلترة حسب التصنيف',
+                                'مقارنة حسب التصنيف',
                                 style: TextStyle(
                                   fontSize: 15,
                                   fontWeight: FontWeight.w800,
@@ -707,6 +718,7 @@ class _PackagesPageState extends State<PackagesPage> {
                         isVariableProduct: isVariableProduct,
                         features: features,
                         isDeliveryPack: isDeliveryPack,
+                        settingsProvider: settingsProvider,
                       ),
                     );
                   }),
@@ -751,21 +763,10 @@ class _PackagesPageState extends State<PackagesPage> {
             child: SizedBox(
               height: 180,
               child: hasRemoteImage
-                  ? Image.network(
-                      remoteImageUrl,
+                  ? CachedImage(
+                      imageUrl: remoteImageUrl,
+                      height: 180,
                       fit: BoxFit.cover,
-                      filterQuality: FilterQuality.high,
-                      errorBuilder: (context, error, stackTrace) {
-                        return Image.asset(
-                          fallbackImageUrl,
-                          fit: BoxFit.contain,
-                          errorBuilder: (_, __, ___) => const Icon(
-                            Icons.place_rounded,
-                            size: 72,
-                            color: Color(0xFFE2E8F0),
-                          ),
-                        );
-                      },
                     )
                   : Image.asset(
                       fallbackImageUrl,
@@ -865,6 +866,7 @@ class _PackagesPageState extends State<PackagesPage> {
     required bool isVariableProduct,
     required List<String> features,
     required bool isDeliveryPack,
+    required SettingsProvider settingsProvider,
   }) {
     final hasRemoteImage = remoteImageUrl != null && remoteImageUrl.isNotEmpty;
 
@@ -894,16 +896,13 @@ class _PackagesPageState extends State<PackagesPage> {
               fit: StackFit.expand,
               children: [
                 if (hasRemoteImage)
-                  Image.network(
-                    remoteImageUrl,
+                  CachedImage(
+                    imageUrl: remoteImageUrl,
                     fit: BoxFit.cover,
-                    filterQuality: FilterQuality.high,
-                    errorBuilder: (context, error, stackTrace) {
-                      return _buildLocalImageFallback(
-                        imageUrl: imageUrl,
-                        isDeliveryPack: isDeliveryPack,
-                      );
-                    },
+                    errorWidget: _buildLocalImageFallback(
+                      imageUrl: imageUrl,
+                      isDeliveryPack: isDeliveryPack,
+                    ),
                   )
                 else
                   _buildLocalImageFallback(
@@ -964,7 +963,7 @@ class _PackagesPageState extends State<PackagesPage> {
                 ),
                 const SizedBox(height: 6),
                 Text(
-                  _formatCurrency(unitPrice),
+                  _formatCurrency(unitPrice, settingsProvider),
                   style: const TextStyle(
                     fontSize: 28,
                     fontWeight: FontWeight.w800,
@@ -1236,6 +1235,7 @@ class _PackagesPageState extends State<PackagesPage> {
         );
       },
       builder: (context, cartState, child) {
+        final settingsProvider = context.read<SettingsProvider>();
         final cartTotal = selectedTotal * cartState.cartQuantity;
         final needsVariationSelection =
             isVariableProduct &&
@@ -1289,7 +1289,7 @@ class _PackagesPageState extends State<PackagesPage> {
                         ),
                       ),
                       Text(
-                        _formatCurrency(selectedTotal),
+                        _formatCurrency(selectedTotal, settingsProvider),
                         style: const TextStyle(
                           color: Color(0xFF0F172A),
                           fontWeight: FontWeight.w800,
@@ -1312,7 +1312,7 @@ class _PackagesPageState extends State<PackagesPage> {
                             ),
                           ),
                           Text(
-                            _formatCurrency(baseProductPrice),
+                            _formatCurrency(baseProductPrice, settingsProvider),
                             style: const TextStyle(
                               color: Color(0xFF64748B),
                               fontWeight: FontWeight.w700,
@@ -1336,7 +1336,7 @@ class _PackagesPageState extends State<PackagesPage> {
                           ),
                         ),
                         Text(
-                          _formatCurrency(cartTotal),
+                          _formatCurrency(cartTotal, settingsProvider),
                           style: const TextStyle(
                             color: Color(0xFF1E3A5F),
                             fontWeight: FontWeight.w700,
@@ -1392,6 +1392,13 @@ class _PackagesPageState extends State<PackagesPage> {
                         variationRequiredButMissing
                     ? null
                     : () async {
+                        print('🎯 Add to cart button pressed');
+                        print('🎯 productId: $productId');
+                        print('🎯 isVariableProduct: $isVariableProduct');
+                        print('🎯 selectedVariationId: $selectedVariationId');
+                        print('🎯 needsVariationSelection: $needsVariationSelection');
+                        print('🎯 variationRequiredButMissing: $variationRequiredButMissing');
+                        
                         final cartProvider = context.read<CartProvider>();
                         final success = await cartProvider.addToCart(
                           productId,
@@ -1401,6 +1408,7 @@ class _PackagesPageState extends State<PackagesPage> {
                               : null,
                         );
 
+                        print('🎯 Add to cart result: $success');
                         if (!context.mounted || success) return;
                         ScaffoldMessenger.of(context).showSnackBar(
                           const SnackBar(

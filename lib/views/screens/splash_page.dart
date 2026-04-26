@@ -46,13 +46,26 @@ class _SplashPageState extends State<SplashPage>
       
       final prefs = await SharedPreferences.getInstance();
       final hasToken = prefs.getString('auth_token') != null;
+      final hasSeenOnboarding = prefs.getBool('onboarding_completed') ?? false;
 
       if (!mounted) return;
 
+      // تحديد الصفحة المناسبة
+      Widget nextPage;
+      if (hasToken) {
+        // مستخدم مسجل دخول
+        nextPage = const ShellPage();
+      } else if (hasSeenOnboarding) {
+        // شاهد الـ Onboarding من قبل، يذهب للصفحة الرئيسية كضيف
+        nextPage = const ShellPage();
+      } else {
+        // أول مرة، يعرض الـ Onboarding
+        nextPage = const OnboardingPage();
+      }
+
       Navigator.of(context).pushReplacement(
         PageRouteBuilder<void>(
-          pageBuilder: (context, animation, secondaryAnimation) =>
-              hasToken ? const ShellPage() : const OnboardingPage(),
+          pageBuilder: (context, animation, secondaryAnimation) => nextPage,
           transitionDuration: const Duration(milliseconds: 450),
           transitionsBuilder:
               (context, animation, secondaryAnimation, child) {
