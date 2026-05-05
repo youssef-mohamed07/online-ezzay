@@ -647,11 +647,19 @@ class _ProfilePageState extends State<ProfilePage>
                 width: double.infinity,
                 child: OutlinedButton(
                   onPressed: () {
+                    if (auth.isAuthenticated) {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const EditProfilePage(),
+                        ),
+                      );
+                      return;
+                    }
+
                     Navigator.push(
                       context,
-                      MaterialPageRoute(
-                        builder: (_) => const EditProfilePage(),
-                      ),
+                      MaterialPageRoute(builder: (_) => const LoginPage()),
                     );
                   },
                   style: OutlinedButton.styleFrom(
@@ -662,7 +670,9 @@ class _ProfilePageState extends State<ProfilePage>
                     padding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   child: Text(
-                    isMain ? 'تعديل البيانات' : 'تعديل تفاصيل الحساب',
+                    auth.isAuthenticated
+                        ? (isMain ? 'تعديل البيانات' : 'تعديل تفاصيل الحساب')
+                        : 'تسجيل الدخول',
                     style: const TextStyle(
                       color: Colors.red,
                       fontWeight: FontWeight.w600,
