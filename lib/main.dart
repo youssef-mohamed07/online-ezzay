@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_stripe/flutter_stripe.dart';
 import 'package:provider/provider.dart';
 
@@ -16,10 +17,14 @@ const String _defaultStripePublishableKey =
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
-  
+
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
+
   // تكوين الـ Image Cache لتحسين الأداء
   ImageCacheConfig.configure();
-  
+
   const configuredPk = String.fromEnvironment(
     'STRIPE_PUBLISHABLE_KEY',
     defaultValue: _defaultStripePublishableKey,
