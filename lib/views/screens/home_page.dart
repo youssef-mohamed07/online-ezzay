@@ -14,7 +14,6 @@ import 'packages_page.dart';
 import 'cart_page.dart';
 import 'track_page.dart';
 import 'shipments_page.dart';
-import 'shipment_details_page.dart';
 import 'notifications_page.dart';
 import 'profile_page.dart';
 import 'dashboard_page.dart';
@@ -1025,74 +1024,7 @@ class _ActiveShipmentCard extends StatelessWidget {
             ),
           ),
 
-          // Actions Section
-          Padding(
-            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) => ShipmentDetailsPage(
-                            trackingNumber: trackingNumber,
-                            status: status,
-                            weight: weight,
-                            date: date,
-                          ),
-                        ),
-                      );
-                    },
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF475569),
-                      side: const BorderSide(color: Color(0xFFE2E8F0)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text(
-                      'عرض التفاصيل',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: () {
-                      Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) =>
-                              TrackPage(initialTrackingNumber: trackingNumber),
-                        ),
-                      );
-                    },
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE71D24),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text(
-                      'تتبع',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 20),
         ],
       ),
     );

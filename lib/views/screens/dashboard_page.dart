@@ -126,6 +126,16 @@ class _DashboardPageState extends State<DashboardPage> {
     return null;
   }
 
+  String? _firstString(Map<String, dynamic>? source, List<String> keys) {
+    for (final key in keys) {
+      final value = _valueByPath(source, key)?.toString().trim() ?? '';
+      if (value.isNotEmpty && value.toLowerCase() != 'null') {
+        return value;
+      }
+    }
+    return null;
+  }
+
   String _humanizeMetricPath(String path) {
     return path.replaceAll('.', ' · ').replaceAll('_', ' ');
   }
@@ -300,6 +310,25 @@ class _DashboardPageState extends State<DashboardPage> {
                 ]) ??
                 inWarehouseFromShipments;
 
+            final membershipName =
+                _firstString(resolved, [
+                  'membership',
+                  'membership_name',
+                  'current_membership',
+                  'package_name',
+                ]) ??
+                'غير متوفر';
+            final pointsAvailable = _firstInt(resolved, [
+              'points_available',
+              'available_points',
+              'points.available',
+            ]);
+            final pointsTotal = _firstInt(resolved, [
+              'points_total',
+              'total_points',
+              'points.total',
+            ]);
+
             final numericExtrasMap = DashboardPayload.numericExtras(resolved);
             final numericExtraEntries = numericExtrasMap.entries.toList()
               ..sort((a, b) => a.key.compareTo(b.key));
@@ -335,6 +364,12 @@ class _DashboardPageState extends State<DashboardPage> {
                   _DashboardHeaderCard(
                     userName: auth.displayName,
                     dateLabel: _todayLabel(),
+                  ),
+                  const SizedBox(height: 12),
+                  _MembershipPointsCard(
+                    membershipName: membershipName,
+                    pointsAvailable: pointsAvailable,
+                    pointsTotal: pointsTotal,
                   ),
                   const SizedBox(height: 16),
                   _DashboardBannerSlider(
@@ -912,6 +947,116 @@ class _MetricCard extends StatelessWidget {
               fontSize: 12,
               color: Color(0xFF64748B),
               fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MembershipPointsCard extends StatelessWidget {
+  const _MembershipPointsCard({
+    required this.membershipName,
+    required this.pointsAvailable,
+    required this.pointsTotal,
+  });
+
+  final String membershipName;
+  final int? pointsAvailable;
+  final int? pointsTotal;
+
+  String _pointsLabel(int? value) => value?.toString() ?? '-';
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(14),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFFE2E8F0)),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: _MembershipInfoItem(
+              title: 'الباقة الحالية',
+              value: membershipName,
+              icon: Icons.workspace_premium_rounded,
+              color: const Color(0xFF7C3AED),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _MembershipInfoItem(
+              title: 'النقاط المتاحة',
+              value: _pointsLabel(pointsAvailable),
+              icon: Icons.stars_rounded,
+              color: const Color(0xFF0EA5E9),
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: _MembershipInfoItem(
+              title: 'مجموع النقاط',
+              value: _pointsLabel(pointsTotal),
+              icon: Icons.score_rounded,
+              color: const Color(0xFF16A34A),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MembershipInfoItem extends StatelessWidget {
+  const _MembershipInfoItem({
+    required this.title,
+    required this.value,
+    required this.icon,
+    required this.color,
+  });
+
+  final String title;
+  final String value;
+  final IconData icon;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 10),
+      decoration: BoxDecoration(
+        color: color.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, size: 16, color: color),
+          const SizedBox(height: 8),
+          Text(
+            value,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w900,
+              color: Color(0xFF0F172A),
+            ),
+          ),
+          const SizedBox(height: 2),
+          Text(
+            title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              fontSize: 11,
+              color: Color(0xFF64748B),
+              fontWeight: FontWeight.w700,
             ),
           ),
         ],

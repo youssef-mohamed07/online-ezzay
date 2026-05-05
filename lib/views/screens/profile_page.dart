@@ -13,8 +13,6 @@ import 'po_box_page.dart';
 import 'consultation_page.dart';
 import 'auth/login_page.dart';
 import 'shell_page.dart';
-import 'shipment_details_page.dart';
-import 'track_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -1095,28 +1093,6 @@ class _ProfilePageState extends State<ProfilePage>
                 status.isEmpty ? 'غير معروف' : status,
                 delivered,
                 details.isEmpty ? null : details,
-                onViewDetails: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ShipmentDetailsPage(
-                        trackingNumber: trackingNumber,
-                        status: status,
-                        weight: weight,
-                        date: date,
-                      ),
-                    ),
-                  );
-                },
-                onTrack: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) =>
-                          TrackPage(initialTrackingNumber: trackingNumber),
-                    ),
-                  );
-                },
               );
             }),
           ],
@@ -1129,10 +1105,8 @@ class _ProfilePageState extends State<ProfilePage>
     String trackingNumber,
     String status,
     bool delivered,
-    String? details, {
-    required VoidCallback onViewDetails,
-    required VoidCallback onTrack,
-  }) {
+    String? details,
+  ) {
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
@@ -1292,56 +1266,7 @@ class _ProfilePageState extends State<ProfilePage>
             ),
           ),
 
-          // Actions Section
-          Padding(
-            padding: const EdgeInsets.only(left: 20, right: 20, bottom: 20),
-            child: Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton(
-                    onPressed: onViewDetails,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: const Color(0xFF475569),
-                      side: const BorderSide(color: Color(0xFFE2E8F0)),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text(
-                      'عرض التفاصيل',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ElevatedButton(
-                    onPressed: onTrack,
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFFE71D24),
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(14),
-                      ),
-                      padding: const EdgeInsets.symmetric(vertical: 14),
-                    ),
-                    child: const Text(
-                      'تتبع',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
+          const SizedBox(height: 20),
 
           if (details != null)
             Padding(

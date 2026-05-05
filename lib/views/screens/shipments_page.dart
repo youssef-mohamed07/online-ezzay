@@ -4,9 +4,7 @@ import 'package:provider/provider.dart';
 import 'package:online_ezzy/core/api_service.dart';
 import 'package:online_ezzy/core/image_url_utils.dart';
 import 'package:online_ezzy/providers/shipment_provider.dart';
-import 'package:online_ezzy/views/screens/shipment_details_page.dart';
 import 'package:online_ezzy/views/screens/notifications_page.dart';
-import 'package:online_ezzy/views/screens/track_page.dart';
 import 'package:online_ezzy/views/screens/auth/login_page.dart';
 import 'package:online_ezzy/widgets/cached_image.dart';
 
@@ -395,7 +393,6 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
                                           step: step,
                                           weight: weight,
                                           date: date,
-                                          buttonDisabled: status == 'تم التسليم'.tr,
                                           shipment: shipment,
                                         );
                                       },
@@ -418,7 +415,6 @@ class _ShipmentCardWithImage extends StatelessWidget {
   final int step;
   final String weight;
   final String date;
-  final bool buttonDisabled;
   final Map<String, dynamic> shipment;
 
   const _ShipmentCardWithImage({
@@ -428,7 +424,6 @@ class _ShipmentCardWithImage extends StatelessWidget {
     required this.step,
     required this.weight,
     required this.date,
-    required this.buttonDisabled,
     required this.shipment,
   });
 
@@ -450,7 +445,6 @@ class _ShipmentCardWithImage extends StatelessWidget {
           step: step,
           weight: weight,
           date: date,
-          buttonDisabled: buttonDisabled,
         );
       },
     );
@@ -465,7 +459,6 @@ class _ShipmentCard extends StatelessWidget {
   final int step;
   final String weight;
   final String date;
-  final bool buttonDisabled;
 
   const _ShipmentCard({
     required this.trackingNumber,
@@ -475,11 +468,13 @@ class _ShipmentCard extends StatelessWidget {
     required this.step,
     required this.weight,
     required this.date,
-    required this.buttonDisabled,
   });
 
   @override
   Widget build(BuildContext context) {
+    final normalizedImageUrl = normalizeImageUrl(imageUrl);
+    final canOpenImage = normalizedImageUrl.isNotEmpty;
+
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -491,13 +486,39 @@ class _ShipmentCard extends StatelessWidget {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedImage(
-                  imageUrl: imageUrl,
-                  width: 80,
-                  height: 80,
-                  fit: BoxFit.cover,
+              GestureDetector(
+                onTap: canOpenImage
+                    ? () => _showZoomableImage(context, normalizedImageUrl)
+                    : null,
+                child: Stack(
+                  children: [
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: CachedImage(
+                        imageUrl: imageUrl,
+                        width: 80,
+                        height: 80,
+                        fit: BoxFit.cover,
+                      ),
+                    ),
+                    if (canOpenImage)
+                      Positioned(
+                        bottom: 4,
+                        right: 4,
+                        child: Container(
+                          padding: const EdgeInsets.all(3),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.45),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: const Icon(
+                            Icons.zoom_in,
+                            size: 14,
+                            color: Colors.white,
+                          ),
+                        ),
+                      ),
+                  ],
                 ),
               ),
               SizedBox(width: 16),
@@ -543,67 +564,6 @@ class _ShipmentCard extends StatelessWidget {
           SizedBox(height: 24),
           Row(
             children: [
-              SizedBox(
-                height: 36,
-                child: ElevatedButton(
-                  onPressed: buttonDisabled
-                      ? null
-                      : () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => TrackPage(
-                                initialTrackingNumber: trackingNumber,
-                              ),
-                            ),
-                          );
-                        },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: buttonDisabled
-                        ? const Color(0xFFE2E8F0)
-                        : const Color(0xFFE71D24),
-                    foregroundColor: buttonDisabled
-                        ? const Color(0xFF94A3B8)
-                        : Colors.white,
-                    elevation: 0,
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    disabledBackgroundColor: const Color(0xFFE2E8F0),
-                    disabledForegroundColor: const Color(0xFF94A3B8),
-                    padding: const EdgeInsets.symmetric(horizontal: 20),
-                  ),
-                  child: Text(
-                    'تتبع'.tr,
-                    style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
-                  ),
-                ),
-              ),
-              SizedBox(width: 16),
-              GestureDetector(
-                onTap: () {
-                  Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (context) => ShipmentDetailsPage(
-                        trackingNumber: trackingNumber,
-                        status: status,
-                        weight: weight,
-                        date: date,
-                        imageUrl: imageUrl,
-                      ),
-                    ),
-                  );
-                },
-                child: Text(
-                  'عرض التفاصيل'.tr,
-                  style: TextStyle(
-                    color: Color(0xFFE71D24),
-                    fontWeight: FontWeight.bold,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
               const Spacer(),
               Text(
                 'الوزن $weight كجم | تاريخ $date'.tr,
@@ -613,6 +573,47 @@ class _ShipmentCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+
+  void _showZoomableImage(BuildContext context, String imageUrl) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (dialogContext) {
+        return GestureDetector(
+          onTap: () => Navigator.of(dialogContext).pop(),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  Center(
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 5.0,
+                      panEnabled: true,
+                      child: CachedImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.contain,
+                        width: MediaQuery.of(dialogContext).size.width,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
     );
   }
 

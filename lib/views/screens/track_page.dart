@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:online_ezzy/core/app_translations.dart';
+import 'package:online_ezzy/core/image_url_utils.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:online_ezzy/providers/dashboard_provider.dart';
@@ -104,6 +105,199 @@ class _TrackPageState extends State<TrackPage> {
     return data;
   }
 
+  void _showZoomableImage(BuildContext context, String imageUrl) {
+    showDialog<void>(
+      context: context,
+      barrierColor: Colors.black87,
+      builder: (dialogContext) {
+        return GestureDetector(
+          onTap: () => Navigator.of(dialogContext).pop(),
+          child: Scaffold(
+            backgroundColor: Colors.transparent,
+            body: SafeArea(
+              child: Stack(
+                children: [
+                  Center(
+                    child: InteractiveViewer(
+                      minScale: 1.0,
+                      maxScale: 5.0,
+                      panEnabled: true,
+                      child: CachedImage(
+                        imageUrl: imageUrl,
+                        fit: BoxFit.contain,
+                        width: MediaQuery.of(dialogContext).size.width,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    top: 12,
+                    left: 12,
+                    child: IconButton(
+                      onPressed: () => Navigator.of(dialogContext).pop(),
+                      icon: const Icon(Icons.close, color: Colors.white),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+  Widget _buildDashboardHeroSlider() {
+    return Consumer<DashboardProvider>(
+      builder: (context, dashboard, _) {
+        if (dashboard.isLoading && dashboard.sliders.isEmpty) {
+          return Container(
+            height: 150,
+            decoration: BoxDecoration(
+              color: Colors.grey[200],
+              borderRadius: BorderRadius.circular(18),
+            ),
+            child: const Center(
+              child: CircularProgressIndicator(
+                color: Color(0xFFE71D24),
+              ),
+            ),
+          );
+        }
+
+        List<String> images = [];
+        try {
+          String? pickUrl(dynamic raw) {
+            if (raw == null) return null;
+            if (raw is String) {
+              final s = raw.trim();
+              return s.isEmpty ? null : s;
+            }
+            if (raw is Map) {
+              final item = Map<String, dynamic>.from(raw);
+              final candidates = [
+                item['image'],
+                item['image_url'],
+                item['url'],
+                item['src'],
+                item['thumbnail'],
+              ];
+              for (final c in candidates) {
+                final s = c?.toString().trim() ?? '';
+                if (s.isNotEmpty) return s;
+              }
+            }
+            return null;
+          }
+
+          images = dashboard.sliders
+              .map(pickUrl)
+              .whereType<String>()
+              .toList();
+        } catch (e) {
+          print('Error processing sliders: $e');
+        }
+
+        if (images.isEmpty) {
+          images = [
+            RealImages.homeHero,
+            RealImages.trackHero,
+            RealImages.shipmentsHero,
+          ];
+        }
+
+        return _TrackHeroSlider(
+          controller: _bannerController,
+          images: images,
+          index: _bannerIndex,
+          onPageChanged: (value) => setState(() => _bannerIndex = value),
+        );
+      },
+    );
+  }
+
+  Widget _buildTrackHero({
+    required Map<String, dynamic>? trackingData,
+    required String trackingNumber,
+  }) {
+    if (trackingData == null || trackingNumber.trim().isEmpty) {
+      return _buildDashboardHeroSlider();
+    }
+
+    return FutureBuilder<String>(
+      key: ValueKey<String>(trackingNumber.trim()),
+      future: context.read<ShipmentProvider>().loadShipmentImage(
+            trackingNumber.trim(),
+            shipment: trackingData,
+          ),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState != ConnectionState.done) {
+          return Column(
+            children: [
+              Container(
+                height: 150,
+                decoration: BoxDecoration(
+                  color: Colors.grey[200],
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Center(
+                  child: CircularProgressIndicator(
+                    color: Color(0xFFE71D24),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+              const SizedBox(height: 6),
+            ],
+          );
+        }
+
+        final normalized =
+            normalizeImageUrl(snapshot.data ?? '');
+        if (normalized.isEmpty) {
+          return _buildDashboardHeroSlider();
+        }
+
+        return Column(
+          children: [
+            GestureDetector(
+              onTap: () => _showZoomableImage(context, normalized),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(18),
+                child: Stack(
+                  alignment: Alignment.bottomRight,
+                  children: [
+                    CachedImage(
+                      imageUrl: normalized,
+                      height: 150,
+                      width: double.infinity,
+                      fit: BoxFit.cover,
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.all(8),
+                      child: Container(
+                        padding: const EdgeInsets.all(4),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: const Icon(
+                          Icons.zoom_in,
+                          size: 18,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(height: 16),
+          ],
+        );
+      },
+    );
+  }
+
   List<_TimelineItem> _buildTimeline(Map<String, dynamic> data) {
     final timelineRaw =
         data['status_history'] ??
@@ -196,72 +390,9 @@ class _TrackPageState extends State<TrackPage> {
               child: BackButton(color: Color(0xFF1E293B)),
             ),
             SizedBox(height: 8),
-            Consumer<DashboardProvider>(
-              builder: (context, dashboard, _) {
-                if (dashboard.isLoading && dashboard.sliders.isEmpty) {
-                  return Container(
-                    height: 150,
-                    decoration: BoxDecoration(
-                      color: Colors.grey[200],
-                      borderRadius: BorderRadius.circular(18),
-                    ),
-                    child: const Center(
-                      child: CircularProgressIndicator(
-                        color: Color(0xFFE71D24),
-                      ),
-                    ),
-                  );
-                }
-
-                List<String> images = [];
-                try {
-                  String? pickUrl(dynamic raw) {
-                    if (raw == null) return null;
-                    if (raw is String) {
-                      final s = raw.trim();
-                      return s.isEmpty ? null : s;
-                    }
-                    if (raw is Map) {
-                      final item = Map<String, dynamic>.from(raw);
-                      final candidates = [
-                        item['image'],
-                        item['image_url'],
-                        item['url'],
-                        item['src'],
-                        item['thumbnail'],
-                      ];
-                      for (final c in candidates) {
-                        final s = c?.toString().trim() ?? '';
-                        if (s.isNotEmpty) return s;
-                      }
-                    }
-                    return null;
-                  }
-
-                  images = dashboard.sliders
-                      .map(pickUrl)
-                      .whereType<String>()
-                      .toList();
-                } catch (e) {
-                  print('Error processing sliders: $e');
-                }
-
-                if (images.isEmpty) {
-                  images = [
-                    RealImages.homeHero,
-                    RealImages.trackHero,
-                    RealImages.shipmentsHero,
-                  ];
-                }
-
-                return _TrackHeroSlider(
-                  controller: _bannerController,
-                  images: images,
-                  index: _bannerIndex,
-                  onPageChanged: (value) =>
-                      setState(() => _bannerIndex = value),
-                );
-              },
+            _buildTrackHero(
+              trackingData: trackingData,
+              trackingNumber: trackingNumber,
             ),
             SizedBox(height: 16),
             Text('تتبع الشحنة'.tr, style: Theme.of(context).textTheme.headlineSmall),
