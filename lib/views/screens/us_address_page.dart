@@ -1,6 +1,7 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:online_ezzy/core/api_service.dart';
+import 'package:online_ezzy/core/app_title_assets.dart';
 
 import 'contact_us_page.dart';
 
@@ -99,8 +100,8 @@ class _UsAddressPageState extends State<UsAddressPage> {
                 padding: const EdgeInsets.all(8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=600',
+                  child: Image.asset(
+                    AppTitleAssets.usAddress,
                     height: 180,
                     width: double.infinity,
                     fit: BoxFit.cover,

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:online_ezzy/core/app_title_assets.dart';
 
 class AddressDetailsPage extends StatefulWidget {
   final String title;
@@ -58,8 +59,8 @@ class _AddressDetailsPageState extends State<AddressDetailsPage> {
                 padding: const EdgeInsets.all(8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    'https://images.pexels.com/photos/196667/pexels-photo-196667.jpeg?auto=compress&cs=tinysrgb&w=600',
+                  child: Image.asset(
+                    AppTitleAssets.insideAddress,
                     height: 180,
                     width: double.infinity,
                     fit: BoxFit.cover,

@@ -1,0 +1,1 @@
+void agentDebugAppendWorkspaceNdjson(String line) {}

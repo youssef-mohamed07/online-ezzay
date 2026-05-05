@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:online_ezzy/core/api_service.dart';
+import 'package:online_ezzy/core/app_title_assets.dart';
 import 'package:online_ezzy/providers/product_provider.dart';
 import 'package:online_ezzy/providers/cart_provider.dart';
 import 'package:online_ezzy/providers/settings_provider.dart';
@@ -38,12 +39,6 @@ class _ProductVariationOption {
 class _PackagesPageState extends State<PackagesPage> {
   static const int _packagesOnlyCategoryId = 68;
   static const Set<int> _addressCategoryIdSet = {69, 70, 77};
-  static const String _insideAddressImageUrl =
-      'https://images.pexels.com/photos/196667/pexels-photo-196667.jpeg?auto=compress&cs=tinysrgb&w=600';
-  static const String _chinaAddressImageUrl =
-      'https://images.pexels.com/photos/17233267/pexels-photo-17233267.jpeg?auto=compress&cs=tinysrgb&w=600';
-  static const String _usAddressImageUrl =
-      'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=600';
 
   int? _selectedCategoryId;
   final Map<int, Future<List<_ProductVariationOption>>>
@@ -301,7 +296,7 @@ class _PackagesPageState extends State<PackagesPage> {
     return 'عنوان';
   }
 
-  String _addressCategoryImageUrl({
+  String _addressCategoryTitleAsset({
     required int categoryId,
     required String categoryName,
   }) {
@@ -317,22 +312,22 @@ class _PackagesPageState extends State<PackagesPage> {
         normalizedName.contains('america') ||
         normalizedName.contains('usa') ||
         normalizedName.contains('us')) {
-      return _usAddressImageUrl;
+      return AppTitleAssets.usAddress;
     }
 
     if (normalizedName.contains('صين') || normalizedName.contains('china')) {
-      return _chinaAddressImageUrl;
+      return AppTitleAssets.chinaAddress;
     }
 
     if (normalizedName.contains('داخل') || normalizedName.contains('محلي')) {
-      return _insideAddressImageUrl;
+      return AppTitleAssets.insideAddress;
     }
 
-    if (categoryId == 77) return _usAddressImageUrl;
-    if (categoryId == 70) return _chinaAddressImageUrl;
-    if (categoryId == 69) return _insideAddressImageUrl;
+    if (categoryId == 77) return AppTitleAssets.usAddress;
+    if (categoryId == 70) return AppTitleAssets.chinaAddress;
+    if (categoryId == 69) return AppTitleAssets.insideAddress;
 
-    return _insideAddressImageUrl;
+    return AppTitleAssets.insideAddress;
   }
 
   @override
@@ -420,7 +415,7 @@ class _PackagesPageState extends State<PackagesPage> {
                         categories,
                         categoryId,
                       );
-                      final fixedImageUrl = _addressCategoryImageUrl(
+                      final titleAsset = _addressCategoryTitleAsset(
                         categoryId: categoryId,
                         categoryName: categoryName,
                       );
@@ -429,9 +424,7 @@ class _PackagesPageState extends State<PackagesPage> {
                         padding: const EdgeInsets.only(bottom: 22),
                         child: _buildAddressCategoryCard(
                           title: categoryName,
-                          remoteImageUrl: fixedImageUrl,
-                          fallbackImageUrl:
-                              'lib/assets/images/home/العناوين.png',
+                          imageAsset: titleAsset,
                           onTap: () {
                             Navigator.of(context).push(
                               MaterialPageRoute(
@@ -464,11 +457,31 @@ class _PackagesPageState extends State<PackagesPage> {
             final isFilteringByCategory = _selectedCategoryId != null;
             final selectedCategoryName = _selectedCategoryName(categories);
 
+            final showAddressTitleBanner =
+                widget.categoryIds == null &&
+                _isAddressCategoryId(widget.categoryId);
+
             return SingleChildScrollView(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
+                  if (showAddressTitleBanner) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(16),
+                      child: Image.asset(
+                        _addressCategoryTitleAsset(
+                          categoryId: widget.categoryId,
+                          categoryName: widget.pageTitle,
+                        ),
+                        width: double.infinity,
+                        fit: BoxFit.fitWidth,
+                        errorBuilder: (context, error, stackTrace) =>
+                            const SizedBox.shrink(),
+                      ),
+                    ),
+                    const SizedBox(height: 20),
+                  ],
                   const Text(
                     'اختر الباقة المناسبة لك',
                     style: TextStyle(
@@ -685,30 +698,56 @@ class _PackagesPageState extends State<PackagesPage> {
                       );
                     }
 
-                    // Extract features from short_description or fallbacks
+                    // Extract features from pack_description (direct or meta_data) or fallback to descriptions
                     List<String> features = [];
-                    final desc = product['short_description']?.toString() ?? '';
-                    if (desc.isNotEmpty) {
-                      // Very simple stripped HTML
-                      final stripped = desc
-                          .replaceAll(RegExp(r'<[^>]*>'), '')
-                          .trim();
-                      if (stripped.isNotEmpty) {
-                        features = stripped
-                            .split('\n')
-                            .where((s) => s.trim().isNotEmpty)
-                            .toList();
+                    String packDescRaw = '';
+                    
+                    if (product['pack_description'] is String) {
+                      packDescRaw = product['pack_description'];
+                    } else if (product['pack_description'] is Map) {
+                      packDescRaw = product['pack_description']['value']?.toString() ?? '';
+                    } else if (product['meta_data'] is List) {
+                      for (var meta in product['meta_data']) {
+                        if (meta is Map && meta['key'] == 'pack_description') {
+                          packDescRaw = meta['value']?.toString() ?? '';
+                          break;
+                        }
                       }
                     }
-                    if (features.isEmpty) {
-                      features = isAddress
-                          ? ['عنوان دولي مخصص لك']
-                          : ['مرونة كاملة في عدد الطرود'];
+
+                    if (packDescRaw.trim().isNotEmpty) {
+                       features = packDescRaw
+                          .replaceAll('\r', '')
+                          .split('\n')
+                          .map((s) => s.trim())
+                          .where((s) => s.isNotEmpty)
+                          .toList();
+                    } else {
+                      String desc = product['short_description']?.toString() ?? '';
+                      if (desc.isEmpty) {
+                        desc = product['description']?.toString() ?? '';
+                      }
+
+                      if (desc.isNotEmpty) {
+                        // Add newlines before removing tags to preserve text separation
+                        String processedDesc = desc.replaceAll(RegExp(r'</p>|</li>|<br\s*/?>', caseSensitive: false), '\n');
+                        final stripped = processedDesc
+                            .replaceAll(RegExp(r'<[^>]*>'), '')
+                            .trim();
+                        if (stripped.isNotEmpty) {
+                          features = stripped
+                              .split('\n')
+                              .map((s) => s.trim())
+                              .where((s) => s.isNotEmpty)
+                              .toList();
+                        }
+                      }
                     }
 
                     return Padding(
                       padding: const EdgeInsets.only(bottom: 20),
                       child: _buildPackageCard(
+                        productMap: product,
                         productId: productId,
                         remoteImageUrl: remoteImage,
                         imageUrl: isAddress
@@ -735,13 +774,9 @@ class _PackagesPageState extends State<PackagesPage> {
 
   Widget _buildAddressCategoryCard({
     required String title,
-    required String? remoteImageUrl,
-    required String fallbackImageUrl,
+    required String imageAsset,
     required VoidCallback onTap,
   }) {
-    final hasRemoteImage =
-        remoteImageUrl != null && remoteImageUrl.trim().isNotEmpty;
-
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -763,21 +798,21 @@ class _PackagesPageState extends State<PackagesPage> {
             borderRadius: BorderRadius.circular(12),
             child: SizedBox(
               height: 180,
-              child: hasRemoteImage
-                  ? CachedImage(
-                      imageUrl: remoteImageUrl,
-                      height: 180,
-                      fit: BoxFit.cover,
-                    )
-                  : Image.asset(
-                      fallbackImageUrl,
-                      fit: BoxFit.contain,
-                      errorBuilder: (_, __, ___) => const Icon(
-                        Icons.place_rounded,
-                        size: 72,
-                        color: Color(0xFFE2E8F0),
-                      ),
-                    ),
+              width: double.infinity,
+              child: Image.asset(
+                imageAsset,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) => Image.asset(
+                  'lib/assets/images/home/العناوين.png',
+                  fit: BoxFit.contain,
+                  errorBuilder: (context2, error2, stackTrace2) =>
+                      const Icon(
+                    Icons.place_rounded,
+                    size: 72,
+                    color: Color(0xFFE2E8F0),
+                  ),
+                ),
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -859,6 +894,7 @@ class _PackagesPageState extends State<PackagesPage> {
   }
 
   Widget _buildPackageCard({
+    required Map<String, dynamic> productMap,
     required int productId,
     required String? remoteImageUrl,
     required String imageUrl,
@@ -978,40 +1014,51 @@ class _PackagesPageState extends State<PackagesPage> {
                   style: TextStyle(fontSize: 12, color: Color(0xFF64748B)),
                   textAlign: TextAlign.center,
                 ),
-                if (features.isNotEmpty) const SizedBox(height: 24),
-                ...features.map(
-                  (feature) => Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: Row(
-                      children: [
-                        Container(
-                          width: 24,
-                          height: 24,
-                          decoration: const BoxDecoration(
-                            color: Color(0xFFFFECEC),
-                            shape: BoxShape.circle,
-                          ),
-                          child: const Icon(
-                            Icons.check_rounded,
-                            color: Color(0xFFE71D24),
-                            size: 16,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            feature,
-                            style: const TextStyle(
-                              fontSize: 14,
-                              color: Color(0xFF334155),
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
+                if (features.isNotEmpty) ...[
+                  const SizedBox(height: 24),
+                  Text(
+                    features.first,
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: Color(0xFF1E293B),
+                      height: 1.4,
                     ),
                   ),
-                ),
+                  const SizedBox(height: 16),
+                  ...features.skip(1).map(
+                    (feature) => Padding(
+                      padding: const EdgeInsets.only(bottom: 12),
+                      child: Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: const EdgeInsets.only(top: 2),
+                            width: 10,
+                            height: 10,
+                            decoration: const BoxDecoration(
+                              color: Color(0xFFE71D24),
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 10),
+                          Expanded(
+                            child: Text(
+                              feature,
+                              style: const TextStyle(
+                                fontSize: 13,
+                                color: Color(0xFF475569),
+                                fontWeight: FontWeight.w600,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
                 const SizedBox(height: 24),
                 if (isVariableProduct)
                   FutureBuilder<List<_ProductVariationOption>>(
@@ -1108,6 +1155,7 @@ class _PackagesPageState extends State<PackagesPage> {
                             ),
                           const SizedBox(height: 12),
                           _buildPackageCartSection(
+                            productMap: productMap,
                             productId: productId,
                             baseProductPrice: unitPrice,
                             selectedTotal: selectedOption?.price ?? unitPrice,
@@ -1122,6 +1170,7 @@ class _PackagesPageState extends State<PackagesPage> {
                   )
                 else
                   _buildPackageCartSection(
+                    productMap: productMap,
                     productId: productId,
                     baseProductPrice: unitPrice,
                     selectedTotal: unitPrice,
@@ -1196,6 +1245,7 @@ class _PackagesPageState extends State<PackagesPage> {
   }
 
   Widget _buildPackageCartSection({
+    required Map<String, dynamic> productMap,
     required int productId,
     required double baseProductPrice,
     required double selectedTotal,
@@ -1245,15 +1295,87 @@ class _PackagesPageState extends State<PackagesPage> {
         return Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            const Text(
-              'هذه الخدمة تُشترى مرة واحدة فقط.',
-              textAlign: TextAlign.center,
-              style: TextStyle(
-                color: Color(0xFF64748B),
-                fontSize: 12,
-                fontWeight: FontWeight.w600,
+            if (productMap['description'] != null && productMap['description'].toString().replaceAll(RegExp(r'<[^>]*>'), '').trim().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 10),
+                child: Text(
+                  productMap['description'].toString().replaceAll(RegExp(r'<[^>]*>'), '').trim(),
+                  textAlign: TextAlign.right,
+                  style: const TextStyle(
+                    color: Color(0xFF64748B),
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
               ),
-            ),
+            if (productMap['attributes'] is List && (productMap['attributes'] as List).isNotEmpty)
+              ...((productMap['attributes'] as List).map((attr) {
+                final attrName = attr['name']?.toString() ?? '';
+                final attrOptions = attr['options'] is List ? (attr['options'] as List).join('، ') : '';
+                if (attrName.isEmpty || attrOptions.isEmpty) return const SizedBox.shrink();
+                return Padding(
+                  padding: const EdgeInsets.only(bottom: 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const Icon(Icons.style_rounded, size: 14, color: Color(0xFF64748B)),
+                      const SizedBox(width: 6),
+                      Expanded(
+                        child: Text(
+                          '$attrName: $attrOptions',
+                          style: const TextStyle(
+                            color: Color(0xFF64748B),
+                            fontSize: 12,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              })),
+            if (productMap['categories'] is List && (productMap['categories'] as List).isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.category_rounded, size: 14, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'الأقسام: ${(productMap['categories'] as List).map((c) => c['name']).join('، ')}',
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            if (productMap['sku'] != null && productMap['sku'].toString().isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 6),
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Icon(Icons.qr_code_2_rounded, size: 14, color: Color(0xFF64748B)),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        'رمز المنتج: ${productMap['sku']}',
+                        style: const TextStyle(
+                          color: Color(0xFF64748B),
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
             if (selectedVariationLabel != null &&
                 selectedVariationLabel.isNotEmpty)
               Padding(
@@ -1510,7 +1632,7 @@ class _PackagesPageState extends State<PackagesPage> {
                       ),
                       icon: const Icon(Icons.shopping_cart_checkout, size: 20),
                       label: Text(
-                        'اشتري دلوقتي',
+                        'اشتري الان',
                         style: const TextStyle(
                           fontSize: 14,
                           fontWeight: FontWeight.bold,

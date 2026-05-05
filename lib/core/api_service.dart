@@ -1,10 +1,36 @@
+import 'dart:async';
 import 'dart:convert';
+
 import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../agent_debug_log.dart';
+
 class ApiService {
   static const String baseUrl = 'https://demo.onlineezzy.com/wp-json';
-  static const String stripeBaseUrl = 'https://api.stripe.com/v1';
+
+  /// Clears the session and returns the user to login (set from app bootstrap).
+  static Future<void> Function()? onUnauthorized;
+
+  static bool _handlingUnauthorized = false;
+
+  static Future<void> _notifyIfBearerUnauthorized(
+    Map<String, String> requestHeaders,
+    int statusCode,
+  ) async {
+    if (statusCode != 401 && statusCode != 403) return;
+    final auth = requestHeaders['Authorization'] ?? '';
+    if (!auth.startsWith('Bearer ')) return;
+    final cb = onUnauthorized;
+    if (cb == null) return;
+    if (_handlingUnauthorized) return;
+    _handlingUnauthorized = true;
+    try {
+      await cb();
+    } finally {
+      _handlingUnauthorized = false;
+    }
+  }
 
   // Primary WooCommerce keys used by most secured endpoints.
   static const String consumerKey =
@@ -17,12 +43,6 @@ class ApiService {
       'ck_f39120cd330fd760dc139d9509f02e4b2eedf3a2';
   static const String catalogConsumerSecret =
       'cs_446625012f0190865ee5a2c87c1bbd6d3edb6c62';
-  // Provide via --dart-define=STRIPE_SECRET_KEY=... for local/dev usage.
-  static const String stripeSecretKey = String.fromEnvironment(
-    'STRIPE_SECRET_KEY',
-    defaultValue: '',
-  );
-
   // Helper method to get basic auth header
   static String get _basicAuth =>
       'Basic ${base64Encode(utf8.encode('$consumerKey:$consumerSecret'))}';
@@ -430,6 +450,7 @@ class ApiService {
     );
     final headers = await _getHeaders(useAuth: true, cartToken: cartToken);
     final response = await http.put(url, headers: headers);
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
     final decoded = _safeDecodeBody(response.body);
     return {
       'data': decoded,
@@ -446,6 +467,7 @@ class ApiService {
     final url = Uri.parse('$baseUrl/wc/store/v1/cart/items/$itemKey');
     final headers = await _getHeaders(useAuth: true, cartToken: cartToken);
     final response = await http.delete(url, headers: headers);
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
     final decoded = _safeDecodeBody(response.body);
     return {
       'data': decoded,
@@ -461,6 +483,7 @@ class ApiService {
     final url = Uri.parse('$baseUrl/wc/store/v1/cart/items');
     final headers = await _getHeaders(useAuth: true, cartToken: cartToken);
     final response = await http.delete(url, headers: headers);
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
     final decoded = _safeDecodeBody(response.body);
     return {
       'data': decoded,
@@ -521,6 +544,7 @@ class ApiService {
     );
     final headers = await _getHeaders(useAuth: true, cartToken: cartToken);
     final response = await http.put(url, headers: headers);
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
     final decoded = _safeDecodeBody(response.body);
     if (decoded is Map<String, dynamic>) return decoded;
     return {'data': decoded};
@@ -533,6 +557,7 @@ class ApiService {
     final url = Uri.parse('$baseUrl/wc/store/v1/cart/items/$itemKey');
     final headers = await _getHeaders(useAuth: true, cartToken: cartToken);
     final response = await http.delete(url, headers: headers);
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
     final decoded = _safeDecodeBody(response.body);
     if (decoded is Map<String, dynamic>) return decoded;
     return {'data': decoded};
@@ -542,6 +567,7 @@ class ApiService {
     final url = Uri.parse('$baseUrl/wc/store/v1/cart/items');
     final headers = await _getHeaders(useAuth: true, cartToken: cartToken);
     final response = await http.delete(url, headers: headers);
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
     final decoded = _safeDecodeBody(response.body);
     if (decoded is Map<String, dynamic>) return decoded;
     return {'data': decoded};
@@ -599,6 +625,7 @@ class ApiService {
       headers: headers,
       body: jsonEncode(checkoutData),
     );
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
     dynamic decoded;
     try {
       decoded = jsonDecode(response.body);
@@ -616,79 +643,222 @@ class ApiService {
 
   // --- Stripe ---
 
-  static Future<Map<String, dynamic>> createPaymentIntent(
-    int amount,
-    String currency,
-    String paymentMethod,
-  ) async {
-    if (stripeSecretKey.trim().isEmpty || stripeSecretKey.contains('REMOVED')) {
-      return {
-        'error': {
-          'message':
-              'Stripe secret key is not configured. Pass STRIPE_SECRET_KEY via --dart-define.',
-        },
-        'status_code': 500,
-      };
-    }
+  // --- Native Stripe Payment (UPDATED to work with existing backend) ---
 
-    final url = Uri.parse('$stripeBaseUrl/payment_intents');
-    final body = <String, String>{
-      'amount': amount.toString(),
+  // --- PayPal Native-Assisted Flow ---
+
+  static Future<Map<String, dynamic>> createPaypalOrder({
+    required String cartToken,
+  }) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/paypal/create-order');
+    final headers = await _getHeaders(useAuth: true);
+    final body = <String, dynamic>{'cart_token': cartToken};
+
+    final response = await http
+        .post(url, headers: headers, body: jsonEncode(body))
+        .timeout(const Duration(seconds: 20));
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
+    final decoded = _safeDecodeBody(response.body);
+    if (decoded is Map<String, dynamic>) {
+      decoded['status_code'] = response.statusCode;
+      return decoded;
+    }
+    return {
+      'data': decoded,
+      'status_code': response.statusCode,
+      'error': 'Invalid response format',
+    };
+  }
+
+  static Future<Map<String, dynamic>> capturePaypalOrder({
+    required String paypalOrderId,
+    required String cartToken,
+    required Map<String, dynamic> billingAddress,
+  }) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/paypal/capture-order');
+    final headers = await _getHeaders(useAuth: true);
+    final body = <String, dynamic>{
+      'paypal_order_id': paypalOrderId,
+      'cart_token': cartToken,
+      'billing_address': billingAddress,
+    };
+
+    final response = await http
+        .post(url, headers: headers, body: jsonEncode(body))
+        .timeout(const Duration(seconds: 20));
+    await _notifyIfBearerUnauthorized(headers, response.statusCode);
+    final decoded = _safeDecodeBody(response.body);
+    if (decoded is Map<String, dynamic>) {
+      decoded['status_code'] = response.statusCode;
+      return decoded;
+    }
+    return {
+      'data': decoded,
+      'status_code': response.statusCode,
+      'error': 'Invalid response format',
+    };
+  }
+
+  /// Creates a payment intent via backend endpoint.
+  /// Backend is responsible for securely calling Stripe with secret key.
+  static Future<Map<String, dynamic>> createStripePaymentIntent({
+    required double amount,
+    required String currency,
+  }) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/stripe/create-payment-intent');
+    final headers = await _getHeaders(useAuth: true);
+    final body = <String, dynamic>{
+      // Backend endpoint expects major unit and converts internally if needed.
+      'amount': double.parse(amount.toStringAsFixed(2)),
       'currency': currency.toLowerCase(),
     };
 
-    if (paymentMethod.startsWith('pm_')) {
-      // Test fallback without PaymentSheet: confirm immediately with a card PM
-      // and keep intent constrained to card-only methods.
-      body['payment_method_types[]'] = 'card';
-      body['payment_method'] = paymentMethod;
-      body['confirm'] = 'true';
-      body['return_url'] = 'https://demo.onlineezzy.com';
-    } else if (paymentMethod == 'card') {
-      body['automatic_payment_methods[enabled]'] = 'true';
-      body['automatic_payment_methods[allow_redirects]'] = 'never';
-      body['return_url'] = 'https://demo.onlineezzy.com';
-    } else {
-      body['payment_method_types[]'] = paymentMethod;
-      body['return_url'] = 'https://demo.onlineezzy.com';
-    }
-
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $stripeSecretKey',
-        'Content-Type': 'application/x-www-form-urlencoded',
+    // #region agent log
+    agentDebugLog(
+      location: 'api_service.dart:createStripePaymentIntent:request',
+      message: 'creating intent',
+      hypothesisId: 'H6',
+      data: {
+        'amount': body['amount'],
+        'currency': body['currency'],
       },
-      body: body,
     );
-    final decoded = jsonDecode(response.body);
-    if (decoded is Map<String, dynamic>) {
-      decoded['status_code'] = response.statusCode;
-      decoded['requested_payment_method'] = paymentMethod;
-      decoded['used_test_confirm_flow'] = paymentMethod.startsWith('pm_');
-      return decoded;
+    // #endregion
+
+    try {
+      final response = await http.post(
+        url,
+        headers: headers,
+        body: jsonEncode(body),
+      ).timeout(const Duration(seconds: 20));
+
+      await _notifyIfBearerUnauthorized(headers, response.statusCode);
+
+      final decoded = _safeDecodeBody(response.body);
+      
+      if (decoded is Map<String, dynamic>) {
+        decoded['status_code'] = response.statusCode;
+        // #region agent log
+        final id = decoded['payment_intent_id']?.toString() ??
+            decoded['id']?.toString() ??
+            '';
+        agentDebugLog(
+          location: 'api_service.dart:createStripePaymentIntent',
+          message: 'intent response',
+          hypothesisId: 'H3',
+          data: {
+            'httpStatus': response.statusCode,
+            'hasClientSecret':
+                (decoded['client_secret']?.toString().isNotEmpty ?? false),
+            'idPrefix': id.length >= 10 ? id.substring(0, 10) : id,
+          },
+        );
+        // #endregion
+        return decoded;
+      }
+
+      return {
+        'data': decoded,
+        'status_code': response.statusCode,
+        'error': 'Invalid response format',
+      };
+    } on TimeoutException {
+      return {
+        'error': 'Payment intent request timeout',
+        'message':
+            'تعذر الاتصال بخدمة الدفع حالياً. تحقق من الاتصال وحاول مرة أخرى.',
+        'status_code': 504,
+      };
+    } catch (e) {
+      return {
+        'error': e.toString(),
+        'status_code': 500,
+      };
     }
-    return {'data': decoded, 'status_code': response.statusCode};
   }
 
-  // Confirm Payment Intent (from Stripe Copy endpoint)
-  static Future<Map<String, dynamic>> confirmPaymentIntent(
-    String paymentIntentId,
-    Map<String, String> paymentMethodData,
-  ) async {
-    final url = Uri.parse(
-      '$stripeBaseUrl/payment_intents/$paymentIntentId/confirm',
-    );
-    final response = await http.post(
-      url,
-      headers: {
-        'Authorization': 'Bearer $stripeSecretKey',
-        'Content-Type': 'application/x-www-form-urlencoded',
+  /// Confirms order after successful Stripe payment via backend completion endpoint.
+  static Future<Map<String, dynamic>> checkoutWithStripePayment({
+    required String paymentIntentId,
+    String? paymentIntentClientSecret,
+    String? stripePaymentMethodId,
+    required Map<String, dynamic> billingAddress,
+    required String cartToken,
+  }) async {
+    final url = Uri.parse('$baseUrl/ezzy/v1/stripe/complete-order');
+    final headers = await _getHeaders(useAuth: true);
+    final body = <String, dynamic>{
+      'payment_intent_id': paymentIntentId,
+      'cart_token': cartToken,
+      'billing_address': billingAddress,
+    };
+
+    // #region agent log
+    agentDebugLog(
+      location: 'api_service.dart:checkoutWithStripePayment:completeOrderRequest',
+      message: 'sending complete-order request',
+      hypothesisId: 'H7',
+      data: {
+        'hasAuth': headers.containsKey('Authorization'),
+        'cartTokenLen': cartToken.length,
+        'billingAddressKeys':
+            billingAddress.keys.map((e) => e.toString()).toList(),
+        'piPrefix': paymentIntentId.length >= 10
+            ? paymentIntentId.substring(0, 10)
+            : paymentIntentId,
       },
-      body: paymentMethodData,
     );
-    return jsonDecode(response.body);
+    // #endregion
+
+    try {
+      final response = await http
+          .post(
+            url,
+            headers: headers,
+            body: jsonEncode(body),
+          )
+          .timeout(const Duration(seconds: 20));
+
+      await _notifyIfBearerUnauthorized(headers, response.statusCode);
+
+      final decoded = _safeDecodeBody(response.body);
+      final out = decoded is Map<String, dynamic>
+          ? decoded
+          : <String, dynamic>{'data': decoded};
+      out['status_code'] = response.statusCode;
+
+      // #region agent log
+      final msg = out['message']?.toString() ?? '';
+      agentDebugLog(
+        location: 'api_service.dart:checkoutWithStripePayment:completeOrderResponse',
+        message: 'received complete-order response',
+        hypothesisId: 'H7',
+        data: {
+          'httpStatus': response.statusCode,
+          'status': out['status']?.toString(),
+          'orderId': out['order_id']?.toString() ?? out['id']?.toString(),
+          'msgLen': msg.length,
+          'msgSnippet': msg.length > 100 ? msg.substring(0, 100) : msg,
+        },
+      );
+      // #endregion
+
+      return out;
+    } on TimeoutException {
+      return {
+        'error': 'Complete order request timeout',
+        'message':
+            'الطلب استغرق وقتاً أطول من المتوقع. تحقق من الاتصال وحاول مرة أخرى.',
+        'status_code': 504,
+      };
+    } catch (e) {
+      return {
+        'error': e.toString(),
+        'status_code': 500,
+      };
+    }
   }
+
   // --- New Endpoints (ezzy/v1) ---
 
   static Future<dynamic> getShipments() async {
@@ -726,30 +896,45 @@ class ApiService {
         }
       }
     }
+    
+    // Return error info if authentication failed
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      final decoded = _safeDecodeBody(response.body);
+      if (decoded is Map<String, dynamic>) {
+        return decoded;
+      }
+    }
+    
     return [];
   }
 
   static Future<dynamic> getShipmentDetails(String id) async {
     final url = Uri.parse('$baseUrl/ezzy/v1/shipments/$id');
     final authHeaders = await _getHeaders(useAuth: true);
-    var response = await http.get(
-      url,
-      headers: {...authHeaders, 'Accept': 'application/json'},
-    );
+    var response = await http
+        .get(
+          url,
+          headers: {...authHeaders, 'Accept': 'application/json'},
+        )
+        .timeout(const Duration(seconds: 12));
 
     final authValue = authHeaders['Authorization'] ?? '';
     final usedBasicAuth = authValue.startsWith('Basic ');
 
     if ((response.statusCode == 401 || response.statusCode == 403) &&
         !usedBasicAuth) {
-      response = await http.get(
-        url,
-        headers: {'Authorization': _basicAuth, 'Accept': 'application/json'},
-      );
+      response = await http
+          .get(
+            url,
+            headers: {'Authorization': _basicAuth, 'Accept': 'application/json'},
+          )
+          .timeout(const Duration(seconds: 12));
     }
 
     if (response.statusCode == 401 || response.statusCode == 403) {
-      response = await http.get(url, headers: {'Accept': 'application/json'});
+      response = await http
+          .get(url, headers: {'Accept': 'application/json'})
+          .timeout(const Duration(seconds: 12));
     }
 
     if (response.statusCode == 200) {
@@ -792,13 +977,12 @@ class ApiService {
 
   static Future<List<dynamic>> getSliders() async {
     final url = Uri.parse('$baseUrl/ezzy/v1/sliders');
-    final response = await http.get(
-      url,
-      headers: {'Authorization': _basicAuth},
-    );
-    if (response.statusCode == 200) {
-      return jsonDecode(response.body);
+    // Endpoint is public; sending Basic auth can return invalid_username on some setups.
+    var response = await http.get(url, headers: {'Accept': 'application/json'});
+    if (response.statusCode == 401 || response.statusCode == 403) {
+      response = await http.get(url);
     }
+    if (response.statusCode == 200) return jsonDecode(response.body);
     return [];
   }
 

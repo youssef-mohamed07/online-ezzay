@@ -90,7 +90,6 @@ class AppTranslations {
     'اختر المدينة': 'Select city',
     'شروط الخدمة': 'Terms of Service',
     'حول التطبيق': 'About the app',
-    'في المستودع': 'In the warehouse',
     'حالة الشحنة': 'Shipment status',
     '\$weight كجم': '\$weightkg',
     'تتبع الشحنة': 'Shipment tracking',
@@ -98,8 +97,10 @@ class AppTranslations {
     'اختر الخدمة': 'Choose the service',
     'أدخل عنوانك': 'Enter your address',
     'تواصل معنا': 'Contact us',
-    'تم التسليم': 'Delivered',
-    'في الصندوق': 'In the box',
+    'انتهت صلاحية جلسة تسجيل الدخول. سجّل دخولك مجدداً لاستخدام التطبيق بالكامل.':
+        'Your login session has expired. Sign in again to use the full application.',
+    'يجب تسجيل الدخول': 'You must log in',
+    'قم بتسجيل الدخول لعرض شحناتك': 'Log in to view your shipments',
     'شركة الشحن': 'Shipping company',
     'رقم الشحنة': 'Shipment number',
     'وزن الحزمة': 'Package weight',
@@ -108,8 +109,8 @@ class AppTranslations {
     'سجل الدخول': 'Log in',
     'الإعدادات': 'Settings',
     'الإشعارات': 'Notifications',
-    'في الطريق': 'in the way',
     'اضف شحنة': 'Add a shipment',
+    'أضف خدمة': 'Add a service',
     'تم الطلب': 'Request done',
     'الشحن من': 'Shipping from',
     'الإمارات': 'The UAE',
@@ -135,12 +136,29 @@ class AppTranslations {
     'تتبع': 'tracking',
     'كجم': 'kg',
     'مصر': 'Egypt',
+    'الشحنات النشطة': 'Active Shipments',
+    'الشحنات المسلّمة': 'Delivered Shipments',
+    'الطرود في الصندوق': 'Parcels in Box',
+    'النشطة': 'Active',
+    'المسلّمة': 'Delivered',
+    'في الطريق': 'In Transit',
+    'في الصندوق': 'In Box',
+    'تم التسليم': 'Delivered',
   };
   static String translate(String key) {
     if (currentLang == 'en') {
       return arToEn[key] ?? key;
     }
     return key;
+  }
+
+  /// Maps legacy warehouse wording to box wording for UI copy.
+  static String preferBoxOverWarehouse(String text) {
+    if (text.isEmpty) return text;
+    return text
+        .replaceAll('في المستودع', 'في الصندوق')
+        .replaceAll('المستودع', 'الصندوق')
+        .replaceAll('مستودع', 'صندوق');
   }
 }
 

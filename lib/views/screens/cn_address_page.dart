@@ -1,6 +1,7 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:online_ezzy/core/api_service.dart';
+import 'package:online_ezzy/core/app_title_assets.dart';
 
 import 'contact_us_page.dart';
 
@@ -97,8 +98,8 @@ class _CnAddressPageState extends State<CnAddressPage> {
                 padding: const EdgeInsets.all(8),
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(12),
-                  child: Image.network(
-                    'https://images.pexels.com/photos/17233267/pexels-photo-17233267.jpeg?auto=compress&cs=tinysrgb&w=600',
+                  child: Image.asset(
+                    AppTitleAssets.chinaAddress,
                     height: 180,
                     width: double.infinity,
                     fit: BoxFit.cover,

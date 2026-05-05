@@ -5,7 +5,7 @@ import 'home_page.dart';
 import 'profile_page.dart';
 import 'shipments_page.dart';
 import 'cart_page.dart';
-import 'packages_page.dart';
+import 'address_page.dart';
 
 class ShellPage extends StatefulWidget {
   const ShellPage({super.key});
@@ -94,7 +94,9 @@ class _ShellPageState extends State<ShellPage> {
                   child: GestureDetector(
                     onTap: () {
                       Navigator.of(context).push(
-                        MaterialPageRoute(builder: (_) => const PackagesPage()),
+                        MaterialPageRoute<void>(
+                          builder: (_) => const AddressPage(),
+                        ),
                       );
                     },
                     child: Column(
@@ -121,7 +123,7 @@ class _ShellPageState extends State<ShellPage> {
                         ),
                         SizedBox(height: 6),
                         Text(
-                          'اضف شحنة'.tr,
+                          'أضف خدمة'.tr,
                           style: TextStyle(
                             fontSize: 10,
                             fontWeight: FontWeight.normal,

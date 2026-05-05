@@ -37,16 +37,17 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
-    _unreadNotificationsFuture = ApiService.getUnreadNotificationsCount();
+    _unreadNotificationsFuture = ApiService.getUnreadNotificationsCount()
+        .timeout(const Duration(seconds: 6), onTimeout: () => 0);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      context.read<DashboardProvider>().loadData();
       _startBannerTimer();
     });
   }
 
   void _refreshUnreadNotificationsCount() {
     setState(() {
-      _unreadNotificationsFuture = ApiService.getUnreadNotificationsCount();
+      _unreadNotificationsFuture = ApiService.getUnreadNotificationsCount()
+          .timeout(const Duration(seconds: 6), onTimeout: () => 0);
     });
   }
 
@@ -117,24 +118,57 @@ class _HomePageState extends State<HomePage> {
             SizedBox(height: 28),
             Consumer<DashboardProvider>(
               builder: (context, dashboard, _) {
+                // إذا كان لا يزال يحمّل ولا توجد بيانات، نعرض placeholder
                 if (dashboard.isLoading && dashboard.sliders.isEmpty) {
-                  return const SizedBox(
-                    height: 200,
-                    child: Center(child: CircularProgressIndicator()),
+                  return Container(
+                    height: 180,
+                    margin: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFE71D24),
+                      ),
+                    ),
                   );
                 }
 
                 List<String> images = [];
                 try {
+                  String? pickUrl(dynamic raw) {
+                    if (raw == null) return null;
+                    if (raw is String) {
+                      final s = raw.trim();
+                      return s.isEmpty ? null : s;
+                    }
+                    if (raw is Map) {
+                      final item = Map<String, dynamic>.from(raw);
+                      final candidates = [
+                        item['image'],
+                        item['image_url'],
+                        item['url'],
+                        item['src'],
+                        item['thumbnail'],
+                      ];
+                      for (final c in candidates) {
+                        final s = c?.toString().trim() ?? '';
+                        if (s.isNotEmpty) return s;
+                      }
+                    }
+                    return null;
+                  }
+
                   images = dashboard.sliders
-                      .where((s) => s != null)
-                      .map<String>((s) => s.toString())
-                      .where((url) => url.trim().isNotEmpty)
+                      .map(pickUrl)
+                      .whereType<String>()
                       .toList();
                 } catch (e) {
                   print('Error processing sliders: $e');
                 }
 
+                // إذا لم تكن هناك صور من الباك إند، نعرض الصور الافتراضية
                 if (images.isEmpty) {
                   images = [
                     RealImages.homeHero,
@@ -174,10 +208,6 @@ class _HomePageState extends State<HomePage> {
                       status.contains('completed'));
                 }).toList();
 
-                if (provider.isLoading && active.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
                 if (active.isEmpty) {
                   return Container(
                     width: double.infinity,
@@ -208,7 +238,7 @@ class _HomePageState extends State<HomePage> {
               },
             ),
             SizedBox(height: 24),
-            _SectionTitle('طرود في المستودع'),
+            _SectionTitle('طرود في الصندوق'),
             SizedBox(height: 12),
             Consumer<ShipmentProvider>(
               builder: (context, provider, _) {
@@ -227,10 +257,6 @@ class _HomePageState extends State<HomePage> {
                       status.contains('box');
                 }).toList();
 
-                if (provider.isLoading && warehouseShipments.isEmpty) {
-                  return const Center(child: CircularProgressIndicator());
-                }
-
                 if (warehouseShipments.isEmpty) {
                   return Container(
                     width: double.infinity,
@@ -240,7 +266,7 @@ class _HomePageState extends State<HomePage> {
                       borderRadius: BorderRadius.circular(14),
                     ),
                     child: const Text(
-                      'لا توجد طرود في المستودع حالياً',
+                      'لا توجد طرود في الصندوق حالياً',
                       style: TextStyle(color: Color(0xFF64748B)),
                     ),
                   );
@@ -825,13 +851,14 @@ class _ActiveShipmentCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status =
+    final rawStatus =
         (shipment['current_status'] ??
                 shipment['status'] ??
                 shipment['shipment_status'] ??
                 '')
-            .toString()
-            .tr;
+            .toString();
+    final status =
+        AppTranslations.preferBoxOverWarehouse(rawStatus).tr;
     final trackingNumber =
         (shipment['tracking_number'] ??
                 shipment['number'] ??
@@ -964,31 +991,34 @@ class _ActiveShipmentCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: _buildTimelineStep(
-                    'في المستودع'.tr,
+                    'في الصندوق'.tr,
                     isActive:
-                        status == 'في المستودع' ||
-                        status == 'في الطريق' ||
-                        status == 'تم التسليم',
+                        status == 'في الصندوق'.tr ||
+                        status == 'في الطريق'.tr ||
+                        status == 'تم التسليم'.tr,
                     isCompleted:
-                        status == 'في الطريق' || status == 'تم التسليم',
+                        status == 'في الطريق'.tr ||
+                        status == 'تم التسليم'.tr,
                   ),
                 ),
                 _buildTimelineLine(
-                  isCompleted: status == 'في الطريق' || status == 'تم التسليم',
+                  isCompleted:
+                      status == 'في الطريق'.tr || status == 'تم التسليم'.tr,
                 ),
                 Expanded(
                   child: _buildTimelineStep(
                     'في الطريق'.tr,
-                    isActive: status == 'في الطريق' || status == 'تم التسليم',
-                    isCompleted: status == 'تم التسليم',
+                    isActive:
+                        status == 'في الطريق'.tr || status == 'تم التسليم'.tr,
+                    isCompleted: status == 'تم التسليم'.tr,
                   ),
                 ),
-                _buildTimelineLine(isCompleted: status == 'تم التسليم'),
+                _buildTimelineLine(isCompleted: status == 'تم التسليم'.tr),
                 Expanded(
                   child: _buildTimelineStep(
                     'تم التسليم'.tr,
-                    isActive: status == 'تم التسليم',
-                    isCompleted: status == 'تم التسليم',
+                    isActive: status == 'تم التسليم'.tr,
+                    isCompleted: status == 'تم التسليم'.tr,
                   ),
                 ),
               ],
@@ -1375,15 +1405,6 @@ class _AddressCardsRowState extends State<_AddressCardsRow> {
   Widget build(BuildContext context) {
     return Consumer<ProductProvider>(
       builder: (context, productProvider, child) {
-        if (productProvider.isLoading) {
-          return const SizedBox(
-            height: 154,
-            child: Center(
-              child: CircularProgressIndicator(color: Color(0xFFE71D24)),
-            ),
-          );
-        }
-
         List<dynamic> items = productProvider.deliveryProducts;
 
         if (items.isEmpty) {
@@ -1414,6 +1435,38 @@ class _AddressCardsRowState extends State<_AddressCardsRow> {
               final productId = int.tryParse(prod['id'].toString()) ?? 0;
               final String name = prod['name']?.toString() ?? 'عنوان';
               final String price = prod['price']?.toString() ?? '0';
+
+              // Extract description from pack_description or fallback
+              String descriptionText = 'تعرف على تفاصيل العنوان';
+              String packDescRaw = '';
+              
+              if (prod['pack_description'] is String) {
+                packDescRaw = prod['pack_description'];
+              } else if (prod['pack_description'] is Map) {
+                packDescRaw = prod['pack_description']['value']?.toString() ?? '';
+              } else if (prod['meta_data'] is List) {
+                for (var meta in prod['meta_data']) {
+                  if (meta is Map && meta['key'] == 'pack_description') {
+                    packDescRaw = meta['value']?.toString() ?? '';
+                    break;
+                  }
+                }
+              }
+
+              if (packDescRaw.trim().isNotEmpty) {
+                 descriptionText = packDescRaw.replaceAll('\r', '');
+              } else {
+                String desc = prod['short_description']?.toString() ?? '';
+                if (desc.isEmpty) {
+                  desc = prod['description']?.toString() ?? '';
+                }
+                if (desc.isNotEmpty) {
+                  descriptionText = desc.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+                }
+              }
+              // Limits lines for UI to just 1 or 2 lines for the card
+              final lines = descriptionText.split('\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+              final displayDesc = lines.isNotEmpty ? lines.first : 'تعرف على تفاصيل العنوان';
 
               return Container(
                 width: 155,
@@ -1458,7 +1511,7 @@ class _AddressCardsRowState extends State<_AddressCardsRow> {
                       ],
                     ),
                     Text(
-                      '$price دولار\nتعرف على تفاصيل العنوان',
+                      '$price دولار\n$displayDesc',
                       textAlign: TextAlign.start,
                       style: const TextStyle(
                         fontSize: 11,
@@ -1544,7 +1597,7 @@ class _AddressCardsRowState extends State<_AddressCardsRow> {
                                     ),
                                   )
                                 : Text(
-                                    'اشتري دلوقتي',
+                                    'اشتري الان',
                                     style: const TextStyle(
                                       fontWeight: FontWeight.bold,
                                       fontSize: 12,

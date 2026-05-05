@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:online_ezzy/core/image_url_utils.dart';
 
 class CachedImage extends StatelessWidget {
-  final String imageUrl;
+  final Object? imageUrl;
   final BoxFit? fit;
   final double? width;
   final double? height;
@@ -20,18 +21,42 @@ class CachedImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (imageUrl.isEmpty) {
+    final normalizedImageUrl = normalizeImageUrl(imageUrl);
+
+    if (normalizedImageUrl.isEmpty) {
       return errorWidget ??
           Container(
             width: width,
             height: height,
-            color: Colors.grey[200],
-            child: const Icon(Icons.image_not_supported, color: Colors.grey),
+            decoration: BoxDecoration(
+              color: Colors.grey[100],
+              borderRadius: BorderRadius.circular(8),
+            ),
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Icon(
+                  Icons.inventory_2_outlined,
+                  color: Colors.grey[400],
+                  size: (width != null && width! < 100) ? 24 : 40,
+                ),
+                if (width != null && width! >= 100) ...[
+                  SizedBox(height: 4),
+                  Text(
+                    'لا توجد صورة',
+                    style: TextStyle(
+                      color: Colors.grey[400],
+                      fontSize: 10,
+                    ),
+                  ),
+                ],
+              ],
+            ),
           );
     }
 
     return Image.network(
-      imageUrl,
+      normalizedImageUrl,
       fit: fit ?? BoxFit.cover,
       width: width,
       height: height,
@@ -46,10 +71,14 @@ class CachedImage extends StatelessWidget {
             Container(
               width: width,
               height: height,
-              color: Colors.grey[200],
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
               child: Center(
                 child: CircularProgressIndicator(
                   strokeWidth: 2,
+                  color: Color(0xFFE71D24),
                   value: loadingProgress.expectedTotalBytes != null
                       ? loadingProgress.cumulativeBytesLoaded /
                           loadingProgress.expectedTotalBytes!
@@ -63,8 +92,30 @@ class CachedImage extends StatelessWidget {
             Container(
               width: width,
               height: height,
-              color: Colors.grey[200],
-              child: const Icon(Icons.broken_image, color: Colors.grey),
+              decoration: BoxDecoration(
+                color: Colors.grey[100],
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.inventory_2_outlined,
+                    color: Colors.grey[400],
+                    size: (width != null && width! < 100) ? 24 : 40,
+                  ),
+                  if (width != null && width! >= 100) ...[
+                    SizedBox(height: 4),
+                    Text(
+                      'لا توجد صورة',
+                      style: TextStyle(
+                        color: Colors.grey[400],
+                        fontSize: 10,
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             );
       },
     );

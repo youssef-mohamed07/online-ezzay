@@ -14,7 +14,11 @@ class POBoxPage extends StatelessWidget {
           elevation: 0,
           title: const Text(
             'صندوق بريدي',
-            style: TextStyle(color: Color(0xFF2C3E50), fontSize: 20, fontWeight: FontWeight.bold),
+            style: TextStyle(
+              color: Color(0xFF2C3E50),
+              fontSize: 20,
+              fontWeight: FontWeight.bold,
+            ),
           ),
           centerTitle: true,
         ),
@@ -51,7 +55,11 @@ class POBoxPage extends StatelessWidget {
         children: [
           const Text(
             'لماذا الصندوق البريدي',
-            style: TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.w900),
+            style: TextStyle(
+              color: Colors.red,
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+            ),
           ),
           const SizedBox(height: 20),
           _buildCheckItem('عنوان شارع حقيقي\n(ليس صندوق بريد تقليدي)'),
@@ -67,9 +75,18 @@ class POBoxPage extends StatelessWidget {
               style: ElevatedButton.styleFrom(
                 backgroundColor: Colors.red,
                 padding: const EdgeInsets.symmetric(vertical: 14),
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
               ),
-              child: const Text('احصل علي الباقة', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              child: const Text(
+                'احصل علي الباقة',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
             ),
           ),
         ],
@@ -88,7 +105,11 @@ class POBoxPage extends StatelessWidget {
           Expanded(
             child: Text(
               text,
-              style: const TextStyle(fontSize: 13, color: Colors.black54, height: 1.4),
+              style: const TextStyle(
+                fontSize: 13,
+                color: Colors.black54,
+                height: 1.4,
+              ),
             ),
           ),
         ],
@@ -101,7 +122,11 @@ class POBoxPage extends StatelessWidget {
       children: [
         const Text(
           'ماذا تحصل عليه',
-          style: TextStyle(color: Color(0xFF2C3E50), fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Color(0xFF2C3E50),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         const WhatYouGetSlider(),
@@ -114,7 +139,11 @@ class POBoxPage extends StatelessWidget {
       children: [
         const Text(
           'خطط الصندوق البريدي',
-          style: TextStyle(color: Color(0xFF2C3E50), fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Color(0xFF2C3E50),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         const PlansSlider(),
@@ -139,7 +168,11 @@ class POBoxPage extends StatelessWidget {
       children: [
         const Text(
           'الأسئلة الشائعة',
-          style: TextStyle(color: Color(0xFF2C3E50), fontSize: 18, fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: Color(0xFF2C3E50),
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+          ),
         ),
         const SizedBox(height: 16),
         Container(
@@ -159,13 +192,9 @@ class POBoxPage extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         Row(
-           mainAxisAlignment: MainAxisAlignment.center,
-           children: [
-             _buildDot(false),
-             _buildDot(false),
-             _buildDot(true),
-           ],
-         )
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [_buildDot(false), _buildDot(false), _buildDot(true)],
+        ),
       ],
     );
   }
@@ -178,19 +207,31 @@ class POBoxPage extends StatelessWidget {
           ExpansionTile(
             title: Text(
               title,
-              style: const TextStyle(color: Colors.red, fontSize: 14, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                color: Colors.red,
+                fontSize: 14,
+                fontWeight: FontWeight.bold,
+              ),
             ),
             iconColor: Colors.black87,
             collapsedIconColor: Colors.black87,
             children: const [
               Padding(
                 padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-                child: Text('هذا النص هو مثال لنص يمكن أن يستبدل في نفس المساحة، لقد تم توليد هذا النص من مولد النص العربى.', style: TextStyle(color: Colors.black54, fontSize: 13)),
-              )
+                child: Text(
+                  'هذا النص هو مثال لنص يمكن أن يستبدل في نفس المساحة، لقد تم توليد هذا النص من مولد النص العربى.',
+                  style: TextStyle(color: Colors.black54, fontSize: 13),
+                ),
+              ),
             ],
           ),
           if (!isLast)
-            Divider(height: 1, color: Colors.grey.shade100, indent: 16, endIndent: 16),
+            Divider(
+              height: 1,
+              color: Colors.grey.shade100,
+              indent: 16,
+              endIndent: 16,
+            ),
         ],
       ),
     );
@@ -212,32 +253,38 @@ class _WhatYouGetSliderState extends State<WhatYouGetSlider> {
     {
       'icon': Icons.email,
       'title': 'استقبال البريد والطرود',
-      'description': 'نستقبل بريدك باسمك أو باسم شركتك من\nجميع شركات الشحن المحلية والدولية.',
+      'description':
+          'نستقبل بريدك باسمك أو باسم شركتك من\nجميع شركات الشحن المحلية والدولية.',
     },
     {
       'icon': Icons.camera_alt,
       'title': 'صور فورية',
-      'description': 'تشاهد صورة واضحة لكل عنصر يتم استلامه\nقبل اتخاذ أي إجراء.',
+      'description':
+          'تشاهد صورة واضحة لكل عنصر يتم استلامه\nقبل اتخاذ أي إجراء.',
     },
     {
       'icon': Icons.picture_as_pdf,
       'title': 'مسح ضوئي للمحتوى',
-      'description': 'اطلب فتح البريد ومسح محتواه ضوئيًا وتحميله\nبصيغة PDF قابلة للبحث.',
+      'description':
+          'اطلب فتح البريد ومسح محتواه ضوئيًا وتحميله\nبصيغة PDF قابلة للبحث.',
     },
     {
       'icon': Icons.local_shipping,
       'title': 'إعادة توجيه الشحن',
-      'description': 'أعد توجيه البريد لأي عنوان داخل بلدك أو دوليًا\nبأسعار تنافسية.',
+      'description':
+          'أعد توجيه البريد لأي عنوان داخل بلدك أو دوليًا\nبأسعار تنافسية.',
     },
     {
       'icon': Icons.business,
       'title': 'عنوان احترافي للأعمال',
-      'description': 'لتسجيل شركتك، المتاجر الإلكترونية، Google\nMaps، والفواتير.',
+      'description':
+          'لتسجيل شركتك، المتاجر الإلكترونية، Google\nMaps، والفواتير.',
     },
     {
       'icon': Icons.delete_outline,
       'title': 'إتلاف أو إعادة تدوير',
-      'description': 'أعد توجيه البريد لأي عنوان داخل بلدك أو دوليًا\nبأسعار تنافسية.',
+      'description':
+          'أعد توجيه البريد لأي عنوان داخل بلدك أو دوليًا\nبأسعار تنافسية.',
     },
   ];
 
@@ -259,7 +306,10 @@ class _WhatYouGetSliderState extends State<WhatYouGetSlider> {
               final item = _items[index];
               return Container(
                 margin: const EdgeInsets.symmetric(horizontal: 24),
-                padding: const EdgeInsets.symmetric(vertical: 24, horizontal: 20),
+                padding: const EdgeInsets.symmetric(
+                  vertical: 24,
+                  horizontal: 20,
+                ),
                 decoration: BoxDecoration(
                   color: Colors.white,
                   borderRadius: BorderRadius.circular(20),
@@ -272,13 +322,21 @@ class _WhatYouGetSliderState extends State<WhatYouGetSlider> {
                     const SizedBox(height: 16),
                     Text(
                       item['title'],
-                      style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Color(0xFF2C3E50)),
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        color: Color(0xFF2C3E50),
+                      ),
                     ),
                     const SizedBox(height: 12),
                     Text(
                       item['description'],
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 13, color: Colors.black54, height: 1.5),
+                      style: const TextStyle(
+                        fontSize: 13,
+                        color: Colors.black54,
+                        height: 1.5,
+                      ),
                     ),
                   ],
                 ),
@@ -297,7 +355,9 @@ class _WhatYouGetSliderState extends State<WhatYouGetSlider> {
               height: 8,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _currentPage == index ? Colors.red : Colors.grey.shade300,
+                color: _currentPage == index
+                    ? Colors.red
+                    : Colors.grey.shade300,
               ),
             ),
           ),
@@ -360,7 +420,10 @@ class _PlansSliderState extends State<PlansSlider> {
         children: [
           const Icon(Icons.check_circle_outline, color: Colors.red, size: 20),
           const SizedBox(width: 8),
-          Text(text, style: const TextStyle(fontSize: 13, color: Colors.black87)),
+          Text(
+            text,
+            style: const TextStyle(fontSize: 13, color: Colors.black87),
+          ),
         ],
       ),
     );
@@ -395,7 +458,11 @@ class _PlansSliderState extends State<PlansSlider> {
                   children: [
                     Text(
                       plan['title'],
-                      style: const TextStyle(color: Colors.red, fontSize: 18, fontWeight: FontWeight.w900),
+                      style: const TextStyle(
+                        color: Colors.red,
+                        fontSize: 18,
+                        fontWeight: FontWeight.w900,
+                      ),
                     ),
                     const SizedBox(height: 4),
                     Text(
@@ -405,7 +472,9 @@ class _PlansSliderState extends State<PlansSlider> {
                     const SizedBox(height: 20),
                     Expanded(
                       child: Column(
-                        children: features.map((f) => _buildCheckItem(f)).toList(),
+                        children: features
+                            .map((f) => _buildCheckItem(f))
+                            .toList(),
                       ),
                     ),
                     SizedBox(
@@ -415,9 +484,18 @@ class _PlansSliderState extends State<PlansSlider> {
                         style: ElevatedButton.styleFrom(
                           backgroundColor: Colors.red,
                           padding: const EdgeInsets.symmetric(vertical: 14),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(10),
+                          ),
                         ),
-                        child: const Text('اشترك الآن', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                        child: const Text(
+                          'اشترك الآن',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
                       ),
                     ),
                   ],
@@ -437,7 +515,9 @@ class _PlansSliderState extends State<PlansSlider> {
               height: 8,
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                color: _currentPage == index ? Colors.red : Colors.grey.shade300,
+                color: _currentPage == index
+                    ? Colors.red
+                    : Colors.grey.shade300,
               ),
             ),
           ),

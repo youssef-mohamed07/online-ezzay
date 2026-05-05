@@ -1,0 +1,117 @@
+{
+    "info": {
+        "name": "001",
+        "description": "",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "item": [
+        {
+            "name": "ezzy app",
+            "description": "",
+            "item": [
+                {
+                    "name": "Cart Items",
+                    "description": "",
+                    "item": [
+                        {
+                            "name": "create payment intent",
+                            "description": "",
+                            "event": [],
+                            "auth": {},
+                            "request": {
+                                "auth": {
+                                    "type": "bearer",
+                                    "bearer": [
+                                        {
+                                            "key": "token",
+                                            "value": "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJpc3MiOiJodHRwczovL2RlbW8ub25saW5lZXp6eS5jb20iLCJpYXQiOjE3Nzc0OTM4NDksIm5iZiI6MTc3NzQ5Mzg0OSwiZXhwIjoxNzc4MDk4NjQ5LCJkYXRhIjp7InVzZXIiOnsiaWQiOjQ4LCJkZXZpY2UiOiIiLCJwYXNzIjoiMGMyZmMyNGQ3ZWRkMWQ5OTI1YmQ5NWY3MTcwYjg3MmYifX19.gpekTDGnzXrnkJ4j8PAsK6dYwX1-zV-W698PVWHj6C4",
+                                            "type": "string"
+                                        }
+                                    ]
+                                },
+                                "method": "POST",
+                                "body": {
+                                    "mode": "raw",
+                                    "raw": "{ \"amount\": 10.00, \"currency\": \"usd\" }",
+                                    "options": {
+                                        "raw": {
+                                            "language": "json"
+                                        }
+                                    }
+                                },
+                                "header": [],
+                                "url": {
+                                    "raw": "https://demo.onlineezzy.com/wp-json/ezzy/v1/stripe/create-payment-intent",
+                                    "path": [
+                                        "wp-json",
+                                        "ezzy",
+                                        "v1",
+                                        "stripe",
+                                        "create-payment-intent"
+                                    ],
+                                    "host": [
+                                        "demo",
+                                        "onlineezzy",
+                                        "com"
+                                    ],
+                                    "protocol": "https",
+                                    "query": [],
+                                    "variable": []
+                                }
+                            },
+                            "response": [],
+                            "protocolProfileBehavior": {
+                                "strictSSL": false,
+                                "followRedirects": true
+                            }
+                        }
+                    ],
+                    "event": [
+                        {
+                            "listen": "prerequest",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        },
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [],
+                                "type": "text/javascript",
+                                "packages": {}
+                            }
+                        }
+                    ],
+                    "auth": {}
+                }
+            ],
+            "event": [
+                {
+                    "listen": "prerequest",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                },
+                {
+                    "listen": "test",
+                    "script": {
+                        "exec": [],
+                        "type": "text/javascript",
+                        "packages": {}
+                    }
+                }
+            ],
+            "auth": {}
+        }
+    ],
+    "variable": [],
+    "event": [],
+    "auth": {
+        "type": "noauth",
+        "noauth": []
+    }
+}

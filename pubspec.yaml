@@ -1,5 +1,5 @@
 name: online_ezzy
-description: "Online Ezzy logistics and shipping mobile application."
+description: "OnlineEzzy logistics and shipping mobile application."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
 publish_to: 'none' # Remove this line if you wish to publish to pub.dev
@@ -40,7 +40,7 @@ dependencies:
   provider: ^6.1.5+1
   shared_preferences: ^2.5.4
   http: ^1.2.2
-  flutter_stripe: ^12.4.0
+  flutter_stripe: ^12.6.0
   flutter_html: ^3.0.0
   webview_flutter: ^4.8.0
   url_launcher: ^6.3.1
@@ -72,6 +72,7 @@ flutter:
   assets:
     - lib/assets/images/
     - lib/assets/images/home/
+    - lib/assets/صور التطبيق/
 
   # To add assets to your application, add an assets section, like this:
   # assets:
@@ -104,10 +105,14 @@ flutter:
   # For details regarding fonts from package dependencies,
   # see https://flutter.dev/to/font-from-package
 
+# Launcher: use a nearly-square asset (≥1024² recommended).
 flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "lib/assets/images/splash.png"
+  image_path: "lib/assets/logo 1.png"
+  adaptive_icon_background: "#FFFFFF"
+  adaptive_icon_foreground: "lib/assets/logo 1.png"
+  remove_alpha_ios: true
   min_sdk_android: 21
 
 flutter_native_splash:

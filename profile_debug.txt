@@ -1,0 +1,94 @@
+Widget _buildShipmentsTab() {
+    return Consumer<ShipmentProvider>(
+      builder: (context, shipmentProvider, _) {
+        if (shipmentProvider.isLoading && shipmentProvider.shipments.isEmpty) {
+          return const Center(
+            child: CircularProgressIndicator(color: Color(0xFFE71D24)),
+          );
+        }
+
+        final shipments = shipmentProvider.shipments;
+        if (shipments.isEmpty) {
+          return ListView(
+            children: [
+              _buildTopProfileSection(),
+              const SizedBox(height: 24),
+              const Center(
+                child: Text(
+                  'لا توجد شحنات حقيقية في حسابك حالياً',
+                  style: TextStyle(
+                    color: Color(0xFF64748B),
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ),
+            ],
+          );
+        }
+
+        return ListView(
+          children: [
+            _buildTopProfileSection(),
+            ...shipments.map((shipment) {
+              final trackingNumber =
+                  _safeText(shipment['tracking_number']).isNotEmpty
+                  ? _safeText(shipment['tracking_number'])
+                  : _safeText(shipment['number']).isNotEmpty
+                  ? _safeText(shipment['number'])
+                  : _safeText(shipment['id']);
+
+              final status = AppTranslations.preferBoxOverWarehouse(
+                _safeText(
+                  shipment['current_status'] ??
+                      shipment['status'] ??
+                      shipment['shipment_status'],
+                ),
+              );
+              final delivered = _isDeliveredStatus(status);
+              final weight = _safeText(
+                shipment['weight'] ?? shipment['total_weight'],
+              );
+              final date = _safeText(
+                shipment['date_added'] ??
+                    shipment['date'] ??
+                    shipment['created_at'],
+              );
+              final details = [
+                if (weight.isNotEmpty) 'الوزن $weight كجم',
+                if (date.isNotEmpty) 'تاريخ $date',
+              ].join(' | ');
+
+              return _buildShipmentItem(
+                trackingNumber,
+                status.isEmpty ? 'غير معروف' : status,
+                delivered,
+                details.isEmpty ? null : details,
+                onViewDetails: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ShipmentDetailsPage(
+                        trackingNumber: trackingNumber,
+                        status: status,
+                        weight: weight,
+                        date: date,
+                      ),
+                    ),
+                  );
+                },
+                onTrack: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) =>
+                          TrackPage(initialTrackingNumber: trackingNumber),
+                    ),
+                  );
+                },
+              );
+            }),
+          ],
+        );
+      },
+    );
+  }

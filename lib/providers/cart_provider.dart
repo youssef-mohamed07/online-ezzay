@@ -19,6 +19,7 @@ class CartProvider extends ChangeNotifier {
   String? get lastCheckoutError => _lastCheckoutError;
 
   String? _cartToken;
+  String? get cartToken => _cartToken;
 
   CartProvider() {
     _loadCart();
@@ -128,6 +129,28 @@ class CartProvider extends ChangeNotifier {
         message.contains('cart');
   }
 
+  bool _isVariationMismatchResponse(dynamic data) {
+    if (data is! Map) return false;
+    final mapped = Map<String, dynamic>.from(data);
+    final code = mapped['code']?.toString() ?? '';
+    return code == 'woocommerce_rest_variation_id_from_variation_data';
+  }
+
+  int? _extractFirstValidVariationId(List<dynamic> variations) {
+    for (final raw in variations) {
+      if (raw is! Map) continue;
+      final variation = Map<String, dynamic>.from(raw);
+      final id = int.tryParse(variation['id']?.toString() ?? '');
+      if (id == null || id <= 0) continue;
+
+      final status = variation['status']?.toString().toLowerCase() ?? '';
+      if (status.isNotEmpty && status != 'publish') continue;
+      if (variation['purchasable'] == false) continue;
+      return id;
+    }
+    return null;
+  }
+
   Future<bool> addToCart(
     int productId,
     int quantity, {
@@ -141,16 +164,41 @@ class CartProvider extends ChangeNotifier {
     try {
       if (_cartToken == null) await _loadCartToken();
       print('📦 Cart token: $_cartToken');
-      final addRes = await ApiService.addCartItemWithMeta(
+      var effectiveVariationId = variationId;
+      var addRes = await ApiService.addCartItemWithMeta(
         productId: productId,
         quantity: quantity,
-        variationId: variationId,
+        variationId: effectiveVariationId,
         cartToken: _cartToken,
       );
       var statusCode = addRes['status_code'] as int? ?? 500;
       String? nextToken = addRes['cart_token']?.toString();
       print('📦 Add result status: $statusCode');
       print('📦 Add result data: ${addRes['data']}');
+
+      // If product requires variation and caller did not provide one, auto-pick first
+      // purchasable variation and retry once before the stale-token retry path.
+      if ((statusCode < 200 || statusCode >= 300) &&
+          effectiveVariationId == null &&
+          _isVariationMismatchResponse(addRes['data'])) {
+        print('📦 Variation required, resolving first purchasable variation...');
+        final variations = await ApiService.getProductVariations(productId);
+        final resolvedVariationId = _extractFirstValidVariationId(variations);
+        if (resolvedVariationId != null) {
+          effectiveVariationId = resolvedVariationId;
+          print('📦 Resolved variationId: $effectiveVariationId');
+          addRes = await ApiService.addCartItemWithMeta(
+            productId: productId,
+            quantity: quantity,
+            variationId: effectiveVariationId,
+            cartToken: _cartToken,
+          );
+          statusCode = addRes['status_code'] as int? ?? 500;
+          nextToken = addRes['cart_token']?.toString();
+          print('📦 Variation retry result status: $statusCode');
+          print('📦 Variation retry result data: ${addRes['data']}');
+        }
+      }
 
       if (statusCode < 200 || statusCode >= 300) {
         print('📦 First attempt failed, retrying with fresh cart token...');
@@ -162,7 +210,7 @@ class CartProvider extends ChangeNotifier {
         final retryRes = await ApiService.addCartItemWithMeta(
           productId: productId,
           quantity: quantity,
-          variationId: variationId,
+          variationId: effectiveVariationId,
           cartToken: _cartToken,
         );
         statusCode = retryRes['status_code'] as int? ?? 500;
@@ -359,37 +407,5 @@ class CartProvider extends ChangeNotifier {
     };
   }
 
-  Future<Map<String, dynamic>?> createPaymentIntent(
-    int amount,
-    String currency,
-    String paymentMethod,
-  ) async {
-    try {
-      final response = await ApiService.createPaymentIntent(
-        amount,
-        currency,
-        paymentMethod,
-      );
-      return response;
-    } catch (e) {
-      print('Create payment intent error: $e');
-    }
-    return null;
-  }
-
-  Future<Map<String, dynamic>?> confirmPaymentIntent(
-    String paymentIntentId,
-    Map<String, String> paymentMethodData,
-  ) async {
-    try {
-      final response = await ApiService.confirmPaymentIntent(
-        paymentIntentId,
-        paymentMethodData,
-      );
-      return response;
-    } catch (e) {
-      print('Confirm payment intent error: $e');
-    }
-    return null;
-  }
+  // Old payment methods removed - now using PaymentService with native Stripe
 }

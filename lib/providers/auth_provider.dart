@@ -187,7 +187,26 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      final response = await ApiService.register(username, email, password);
+      String candidateUsername = username.trim();
+      Map<String, dynamic> response = await ApiService.register(
+        candidateUsername,
+        email,
+        password,
+      );
+
+      // Backend may reject duplicated usernames. Retry once with unique suffix.
+      final firstErrorText =
+          '${response['message'] ?? ''} ${response['code'] ?? ''}'.toLowerCase();
+      if ((response['status_code'] != 200 && response['status_code'] != 201) &&
+          (firstErrorText.contains('username') &&
+              firstErrorText.contains('already'))) {
+        final suffix = DateTime.now().millisecondsSinceEpoch
+            .toString()
+            .substring(8);
+        candidateUsername = '${candidateUsername}_$suffix';
+        response = await ApiService.register(candidateUsername, email, password);
+      }
+
       _isLoading = false;
       notifyListeners();
 

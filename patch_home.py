@@ -1,44 +1,65 @@
 import re
 
-with open('lib/views/screens/home_page.dart', 'r', encoding='utf-8') as f:
-    text = f.read()
+with open('lib/views/screens/home_page.dart', 'r') as f:
+    content = f.read()
 
-# Make home page show ALL categories and products
-# Section 1: Categories
-old_cats = """        List<dynamic> cats = productProvider.categories.where((c) {
-          final n = c['name'].toString();
-          return n.contains('تجميع') || n.contains('تغليف') || n.contains('تخزين');
-        }).toList();
+old_logic = """              final prod = items[index];
+              final productId = int.tryParse(prod['id'].toString()) ?? 0;
+              final String name = prod['name']?.toString() ?? 'عنوان';
+              final String price = prod['price']?.toString() ?? '0';
 
-        // Fallback for demo
-        if (cats.isEmpty) {
-          cats = productProvider.categories.take(4).toList();
-        }"""
+              return Container("""
 
-new_cats = """        List<dynamic> cats = productProvider.categories;
-        if (cats.length > 4) cats = cats.take(4).toList();"""
+new_logic = """              final prod = items[index];
+              final productId = int.tryParse(prod['id'].toString()) ?? 0;
+              final String name = prod['name']?.toString() ?? 'عنوان';
+              final String price = prod['price']?.toString() ?? '0';
 
-text = text.replace(old_cats, new_cats)
+              // Extract description from pack_description or fallback
+              String descriptionText = 'تعرف على تفاصيل العنوان';
+              String packDescRaw = '';
+              
+              if (prod['pack_description'] is String) {
+                packDescRaw = prod['pack_description'];
+              } else if (prod['pack_description'] is Map) {
+                packDescRaw = prod['pack_description']['value']?.toString() ?? '';
+              } else if (prod['meta_data'] is List) {
+                for (var meta in prod['meta_data']) {
+                  if (meta is Map && meta['key'] == 'pack_description') {
+                    packDescRaw = meta['value']?.toString() ?? '';
+                    break;
+                  }
+                }
+              }
 
-# Section 2: Products
-old_prods = """        List<dynamic> items = productProvider.products.where((p) {
-          final cats = p['categories'] as List?;
-          if (cats != null) {
-            return cats.any((c) => c['name'].toString().contains('عناوين') || c['name'].toString().contains('عنوان'));
-          }
-          return false;
-        }).toList();
+              if (packDescRaw.trim().isNotEmpty) {
+                 descriptionText = packDescRaw.replaceAll('\\r', '');
+              } else {
+                String desc = prod['short_description']?.toString() ?? '';
+                if (desc.isEmpty) {
+                  desc = prod['description']?.toString() ?? '';
+                }
+                if (desc.isNotEmpty) {
+                  descriptionText = desc.replaceAll(RegExp(r'<[^>]*>'), '').trim();
+                }
+              }
+              // Limits lines for UI to just 1 or 2 lines for the card
+              final lines = descriptionText.split('\\n').map((s) => s.trim()).where((s) => s.isNotEmpty).toList();
+              final displayDesc = lines.isNotEmpty ? lines.first : 'تعرف على تفاصيل العنوان';
 
-        // Fallback for demo if no categories match perfectly
-        if (items.isEmpty) {
-          final nameMatches = productProvider.products.where((p) => p['name'].toString().contains('عنوان') || p['name'].toString().contains('عناوين')).toList();
-          items = nameMatches.isNotEmpty ? nameMatches : productProvider.products;
-        }"""
-        
-new_prods = "        List<dynamic> items = productProvider.products;"
-text = text.replace(old_prods, new_prods)
+              return Container("""
 
-text = text.replace("لا يوجد عناوين حاليا", "لا يوجد منتجات حاليا")
+content = content.replace(old_logic, new_logic)
 
-with open('lib/views/screens/home_page.dart', 'w', encoding='utf-8') as f:
-    f.write(text)
+old_text = """                    Text(
+                      '$price دولار\\nتعرف على تفاصيل العنوان',
+                      textAlign: TextAlign.start,"""
+
+new_text = """                    Text(
+                      '$price دولار\\n$displayDesc',
+                      textAlign: TextAlign.start,"""
+
+content = content.replace(old_text, new_text)
+
+with open('lib/views/screens/home_page.dart', 'w') as f:
+    f.write(content)

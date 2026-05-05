@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:online_ezzy/core/app_translations.dart';
+import 'package:online_ezzy/core/dashboard_payload.dart';
 import 'package:online_ezzy/providers/auth_provider.dart';
 import 'package:online_ezzy/providers/dashboard_provider.dart';
 import 'package:online_ezzy/providers/shipment_provider.dart';
@@ -78,6 +79,29 @@ class _DashboardPageState extends State<DashboardPage> {
         status.contains('completed');
   }
 
+  bool _isInTransitShipment(Map<String, dynamic> shipment) {
+    final status =
+      (shipment['current_status'] ?? shipment['status'] ?? shipment['shipment_status'] ?? '')
+        .toString()
+        .toLowerCase();
+    return status.contains('في الطريق') ||
+        status.contains('in transit') ||
+        status.contains('shipping') ||
+        status.contains('out for delivery');
+  }
+
+  bool _isInWarehouseShipment(Map<String, dynamic> shipment) {
+    final status =
+      (shipment['current_status'] ?? shipment['status'] ?? shipment['shipment_status'] ?? '')
+        .toString()
+        .toLowerCase();
+    return status.contains('في الصندوق') ||
+        status.contains('في المستودع') ||
+        status.contains('warehouse') ||
+        status.contains('stored') ||
+        status.contains('box');
+  }
+
   dynamic _valueByPath(Map<String, dynamic>? source, String path) {
     dynamic current = source;
     for (final segment in path.split('.')) {
@@ -100,6 +124,45 @@ class _DashboardPageState extends State<DashboardPage> {
       if (parsed != null) return parsed;
     }
     return null;
+  }
+
+  String _humanizeMetricPath(String path) {
+    return path.replaceAll('.', ' · ').replaceAll('_', ' ');
+  }
+
+  List<Map<String, dynamic>> _mergedRecentShipments(
+    Map<String, dynamic> resolved,
+    List<dynamic> shipments,
+  ) {
+    final fromDash = DashboardPayload.recentShipments(resolved);
+    final out = <Map<String, dynamic>>[];
+    final seen = <String>{};
+
+    String idOf(Map<String, dynamic> m) =>
+        (m['tracking_number'] ?? m['number'] ?? m['id'] ?? '').toString().trim();
+
+    void take(Map<String, dynamic> m) {
+      final id = idOf(m);
+      if (id.isEmpty) return;
+      if (seen.contains(id)) return;
+      seen.add(id);
+      out.add(m);
+    }
+
+    for (final m in fromDash) {
+      take(m);
+    }
+    for (final raw in shipments) {
+      if (raw is Map) {
+        take(
+          Map<String, dynamic>.from(
+            raw.map((k, v) => MapEntry(k.toString(), v)),
+          ),
+        );
+      }
+      if (out.length >= 12) break;
+    }
+    return out;
   }
 
   String _todayLabel() {
@@ -140,14 +203,36 @@ class _DashboardPageState extends State<DashboardPage> {
         ),
         body: Consumer3<AuthProvider, DashboardProvider, ShipmentProvider>(
           builder: (context, auth, dashboardProvider, shipmentProvider, _) {
-            final dashboardData = dashboardProvider.dashboardData;
+            final resolved =
+                dashboardProvider.dashboardData ?? <String, dynamic>{};
             final shipments = shipmentProvider.shipments;
             List<String> bannerImages = [];
             try {
+              String? sliderUrl(dynamic raw) {
+                if (raw == null) return null;
+                if (raw is String) {
+                  final s = raw.trim();
+                  return s.isEmpty ? null : s;
+                }
+                if (raw is Map) {
+                  final m = Map<String, dynamic>.from(raw);
+                  for (final k in [
+                    'image',
+                    'image_url',
+                    'url',
+                    'src',
+                    'thumbnail',
+                  ]) {
+                    final u = m[k]?.toString().trim() ?? '';
+                    if (u.isNotEmpty) return u;
+                  }
+                }
+                return null;
+              }
+
               bannerImages = dashboardProvider.sliders
-                  .where((s) => s != null)
-                  .map((s) => s.toString())
-                  .where((url) => url.trim().isNotEmpty)
+                  .map(sliderUrl)
+                  .whereType<String>()
                   .toList();
             } catch (e) {
               print('Error processing sliders: $e');
@@ -164,43 +249,83 @@ class _DashboardPageState extends State<DashboardPage> {
             final deliveredFromShipments = shipments
                 .where(_isDeliveredShipment)
                 .length;
+            final inTransitFromShipments = shipments
+                .where(_isInTransitShipment)
+                .length;
+            final inWarehouseFromShipments = shipments
+                .where(_isInWarehouseShipment)
+                .length;
             final activeFromShipments = shipments
                 .where((s) => !_isDeliveredShipment(s))
                 .length;
 
             final totalShipments =
-                _firstInt(dashboardData, [
+                _firstInt(resolved, [
                   'total_shipments',
                   'shipments_count',
                   'shipments.total',
+                  'total_count',
+                  'shipments_total',
+                  'all_shipments',
                 ]) ??
                 shipments.length;
 
             final deliveredShipments =
-                _firstInt(dashboardData, [
+                _firstInt(resolved, [
                   'delivered_shipments',
                   'delivered_count',
                   'shipments.delivered',
+                  'completed_shipments',
+                  'completed_count',
                 ]) ??
                 deliveredFromShipments;
 
-            final activeShipments =
-                _firstInt(dashboardData, [
-                  'active_shipments',
-                  'active_count',
-                  'shipments.active',
+            final inTransitShipments =
+                _firstInt(resolved, [
+                  'in_transit_shipments',
+                  'in_transit_count',
+                  'shipments.in_transit',
+                  'shipping_count',
                 ]) ??
-                activeFromShipments;
+                inTransitFromShipments;
 
             final warehouseParcels =
-                _firstInt(dashboardData, [
+                _firstInt(resolved, [
                   'warehouse_parcels_count',
                   'warehouse_count',
                   'warehouse.parcels_count',
+                  'box_parcels_count',
+                  'parcels_in_box',
+                  'parcels_box',
                 ]) ??
-                0;
+                inWarehouseFromShipments;
 
-            final recentShipments = shipments.take(3).toList();
+            final numericExtrasMap = DashboardPayload.numericExtras(resolved);
+            final numericExtraEntries = numericExtrasMap.entries.toList()
+              ..sort((a, b) => a.key.compareTo(b.key));
+
+            const extraMetricColors = <Color>[
+              Color(0xFF6366F1),
+              Color(0xFF0EA5E9),
+              Color(0xFF14B8A6),
+              Color(0xFFEC4899),
+              Color(0xFF8B5CF6),
+            ];
+
+            final detailRows = DashboardPayload.scalarDetailRows(
+              resolved,
+              skipLeafPaths: {},
+              skipSubtreePrefixes: {
+                'recent_shipments',
+                'latest_shipments',
+                'shipments_recent',
+                'recent',
+                'last_shipments',
+              },
+            );
+
+            final recentShipments =
+                _mergedRecentShipments(resolved, shipments);
 
             return RefreshIndicator(
               onRefresh: _refreshData,
@@ -222,7 +347,7 @@ class _DashboardPageState extends State<DashboardPage> {
                   ),
                   const SizedBox(height: 20),
                   _StatusChartCard(
-                    active: activeShipments,
+                    inTransit: inTransitShipments,
                     delivered: deliveredShipments,
                     warehouse: warehouseParcels,
                   ),
@@ -247,10 +372,16 @@ class _DashboardPageState extends State<DashboardPage> {
                         color: const Color(0xFF2563EB),
                       ),
                       _MetricCard(
-                        title: 'شحنات نشطة',
-                        value: activeShipments.toString(),
-                        icon: Icons.flash_on_rounded,
+                        title: 'في الطريق',
+                        value: inTransitShipments.toString(),
+                        icon: Icons.local_shipping_rounded,
                         color: const Color(0xFFE71D24),
+                      ),
+                      _MetricCard(
+                        title: 'في الصندوق',
+                        value: warehouseParcels.toString(),
+                        icon: Icons.inventory_2_rounded,
+                        color: const Color(0xFFF59E0B),
                       ),
                       _MetricCard(
                         title: 'تم التسليم',
@@ -258,14 +389,35 @@ class _DashboardPageState extends State<DashboardPage> {
                         icon: Icons.check_circle_rounded,
                         color: const Color(0xFF16A34A),
                       ),
-                      _MetricCard(
-                        title: 'طرود بالمستودع',
-                        value: warehouseParcels.toString(),
-                        icon: Icons.inventory_2_rounded,
-                        color: const Color(0xFFF59E0B),
-                      ),
                     ],
                   ),
+                  if (numericExtraEntries.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    const Text(
+                      'مؤشرات إضافية من الخادم',
+                      style: TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w900,
+                        color: Color(0xFF1E293B),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: [
+                        for (var i = 0; i < numericExtraEntries.length; i++)
+                          _MetricCard(
+                            title: _humanizeMetricPath(
+                              numericExtraEntries[i].key,
+                            ),
+                            value: numericExtraEntries[i].value.toString(),
+                            icon: Icons.insights_rounded,
+                            color: extraMetricColors[i % extraMetricColors.length],
+                          ),
+                      ],
+                    ),
+                  ],
                   const SizedBox(height: 20),
                   const Text(
                     'اختصارات سريعة',
@@ -362,16 +514,65 @@ class _DashboardPageState extends State<DashboardPage> {
                                       shipment['id'] ??
                                       '-')
                                   .toString(),
-                          status:
-                              (shipment['current_status'] ??
-                                  shipment['status'] ??
-                                      shipment['shipment_status'] ??
-                                      'تم الطلب')
-                                  .toString(),
+                          status: AppTranslations.preferBoxOverWarehouse(
+                            (shipment['current_status'] ??
+                                    shipment['status'] ??
+                                    shipment['shipment_status'] ??
+                                    'تم الطلب')
+                                .toString(),
+                          ),
                           delivered: _isDeliveredShipment(shipment),
                         ),
                       ),
                     ),
+                  if (detailRows.isNotEmpty) ...[
+                    const SizedBox(height: 20),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(14),
+                        border: Border.all(color: const Color(0xFFE2E8F0)),
+                      ),
+                      child: ExpansionTile(
+                        title: const Text(
+                          'بيانات نصية وتفاصيل من الخادم',
+                          style: TextStyle(
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF1E293B),
+                          ),
+                        ),
+                        subtitle: Text(
+                          '${detailRows.length} حقل',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Color(0xFF64748B),
+                          ),
+                        ),
+                        children: [
+                          for (final row in detailRows)
+                            ListTile(
+                              dense: true,
+                              title: Text(
+                                row.key,
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Color(0xFF64748B),
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                              subtitle: Text(
+                                row.value,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  fontWeight: FontWeight.w700,
+                                  color: Color(0xFF0F172A),
+                                ),
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                   const SizedBox(height: 12),
                 ],
               ),
@@ -444,18 +645,18 @@ class _DashboardBannerSlider extends StatelessWidget {
 
 class _StatusChartCard extends StatelessWidget {
   const _StatusChartCard({
-    required this.active,
+    required this.inTransit,
     required this.delivered,
     required this.warehouse,
   });
 
-  final int active;
+  final int inTransit;
   final int delivered;
   final int warehouse;
 
   @override
   Widget build(BuildContext context) {
-    final values = [active, delivered, warehouse];
+    final values = [inTransit, warehouse, delivered];
     final maxValue = values.fold<int>(
       1,
       (prev, cur) => cur > prev ? cur : prev,
@@ -487,22 +688,22 @@ class _StatusChartCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
                 _ChartBar(
-                  label: 'نشطة',
-                  value: active,
+                  label: 'في الطريق',
+                  value: inTransit,
                   maxValue: maxValue,
                   color: const Color(0xFFE71D24),
+                ),
+                _ChartBar(
+                  label: 'في الصندوق',
+                  value: warehouse,
+                  maxValue: maxValue,
+                  color: const Color(0xFFF59E0B),
                 ),
                 _ChartBar(
                   label: 'تم التسليم',
                   value: delivered,
                   maxValue: maxValue,
                   color: const Color(0xFF16A34A),
-                ),
-                _ChartBar(
-                  label: 'مستودع',
-                  value: warehouse,
-                  maxValue: maxValue,
-                  color: const Color(0xFFF59E0B),
                 ),
               ],
             ),

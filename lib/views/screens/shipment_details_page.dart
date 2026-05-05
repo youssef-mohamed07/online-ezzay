@@ -1,6 +1,8 @@
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
+import 'package:online_ezzy/core/image_url_utils.dart';
 import 'package:online_ezzy/providers/shipment_provider.dart';
+import 'package:online_ezzy/widgets/cached_image.dart';
 import 'package:provider/provider.dart';
 
 class ShipmentDetailsPage extends StatefulWidget {
@@ -8,6 +10,7 @@ class ShipmentDetailsPage extends StatefulWidget {
   final String status;
   final String weight;
   final String date;
+  final String imageUrl;
 
   const ShipmentDetailsPage({
     super.key,
@@ -15,6 +18,7 @@ class ShipmentDetailsPage extends StatefulWidget {
     required this.status,
     required this.weight,
     required this.date,
+    this.imageUrl = '',
   });
 
   @override
@@ -51,7 +55,12 @@ class _ShipmentDetailsPageState extends State<ShipmentDetailsPage> {
 
   Future<void> _fetchDetails() async {
     final provider = context.read<ShipmentProvider>();
-    final data = await provider.getShipmentDetails(widget.trackingNumber);
+    Map<String, dynamic>? data;
+    try {
+      data = await provider
+          .getShipmentDetails(widget.trackingNumber)
+          .timeout(const Duration(seconds: 12));
+    } catch (_) {}
     if (mounted) {
       setState(() {
         _details = data;
@@ -62,27 +71,6 @@ class _ShipmentDetailsPageState extends State<ShipmentDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    if (_isLoading) {
-      return Scaffold(
-        backgroundColor: const Color(0xFFF8F9FA),
-        appBar: AppBar(
-          backgroundColor: Colors.white,
-          elevation: 0,
-          scrolledUnderElevation: 0,
-          centerTitle: true,
-          title: Text(
-            'تفاصيل الشحنة'.tr,
-            style: const TextStyle(
-              color: Color(0xFF0F172A),
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-        ),
-        body: const Center(child: CircularProgressIndicator(color: Color(0xFFE71D24))),
-      );
-    }
-
     return Directionality(
       textDirection: TextDirection.rtl,
       child: Scaffold(
@@ -106,6 +94,13 @@ class _ShipmentDetailsPageState extends State<ShipmentDetailsPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              if (_isLoading)
+                const LinearProgressIndicator(
+                  color: Color(0xFFE71D24),
+                  minHeight: 2,
+                ),
+              if (_isLoading)
+                const SizedBox(height: 12),
               _buildHeaderCard(),
               SizedBox(height: 16),
               _buildTimelineCard(),
@@ -120,7 +115,7 @@ class _ShipmentDetailsPageState extends State<ShipmentDetailsPage> {
   }
 
   Widget _buildHeaderCard() {
-    final imageUrl = _details?['image']?.toString() ?? _details?['image_url']?.toString();
+    final imageUrl = firstValidImageUrl([shipmentImageUrl(_details), widget.imageUrl]);
     final status = _effectiveStatus;
     final trackingNumber = _effectiveTrackingNumber;
     
@@ -137,54 +132,63 @@ class _ShipmentDetailsPageState extends State<ShipmentDetailsPage> {
           ),
         ],
       ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Column(
         children: [
-          Container(
-            width: 60,
-            height: 60,
-            decoration: BoxDecoration(
-              color: const Color(0xFFF1F5F9),
-              borderRadius: BorderRadius.circular(12),
-              image: imageUrl != null && imageUrl.isNotEmpty ? DecorationImage(
-                image: NetworkImage(imageUrl),
-                fit: BoxFit.cover,
-              ) : null,
+          // الصورة الكبيرة في الأعلى
+          ClipRRect(
+            borderRadius: BorderRadius.circular(12),
+            child: CachedImage(
+              imageUrl: imageUrl,
+              width: double.infinity,
+              height: 200,
+              fit: BoxFit.cover,
             ),
-            child: imageUrl == null || imageUrl.isEmpty ? const Icon(Icons.inventory_2_outlined, color: Color(0xFFE71D24), size: 30) : null,
           ),
-          SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'رقم التتبع : $trackingNumber'.tr,
+          SizedBox(height: 16),
+          // معلومات الشحنة
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'رقم التتبع'.tr,
+                      style: const TextStyle(
+                        color: Color(0xFF64748B),
+                        fontSize: 12,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      trackingNumber,
+                      style: const TextStyle(
+                        color: Color(0xFF0F172A),
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                decoration: BoxDecoration(
+                  color: const Color(0xFFE71D24).withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFFE71D24).withOpacity(0.5)),
+                ),
+                child: Text(
+                  status,
                   style: const TextStyle(
-                    color: Color(0xFF0F172A),
-                    fontSize: 16,
+                    color: Color(0xFFE71D24),
+                    fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                SizedBox(height: 8),
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                  decoration: BoxDecoration(
-                    color: const Color(0xFFE71D24).withOpacity(0.1),
-                    borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: const Color(0xFFE71D24).withOpacity(0.5)),
-                  ),
-                  child: Text(
-                    status,
-                    style: const TextStyle(
-                      color: Color(0xFFE71D24),
-                      fontSize: 12,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-              ],
-            ),
+              ),
+            ],
           ),
         ],
       ),

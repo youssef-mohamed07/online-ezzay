@@ -1,9 +1,12 @@
+import 'dart:async';
+
 import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:online_ezzy/providers/dashboard_provider.dart';
 import 'package:online_ezzy/providers/shipment_provider.dart';
-
 import 'package:online_ezzy/data/real_images.dart';
+import 'package:online_ezzy/widgets/cached_image.dart';
 
 class TrackPage extends StatefulWidget {
   const TrackPage({super.key, this.initialTrackingNumber});
@@ -18,6 +21,9 @@ class _TrackPageState extends State<TrackPage> {
   late final TextEditingController _trackingController;
   Map<String, dynamic>? _trackingData;
   String? _error;
+  final PageController _bannerController = PageController();
+  Timer? _bannerTimer;
+  int _bannerIndex = 0;
 
   @override
   void initState() {
@@ -26,15 +32,35 @@ class _TrackPageState extends State<TrackPage> {
       text: widget.initialTrackingNumber ?? '',
     );
 
-    if ((widget.initialTrackingNumber ?? '').trim().isNotEmpty) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => _trackShipment());
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _startBannerTimer();
+      if ((widget.initialTrackingNumber ?? '').trim().isNotEmpty) {
+        _trackShipment();
+      }
+    });
   }
 
   @override
   void dispose() {
+    _bannerTimer?.cancel();
+    _bannerController.dispose();
     _trackingController.dispose();
     super.dispose();
+  }
+
+  void _startBannerTimer() {
+    _bannerTimer?.cancel();
+    _bannerTimer = Timer.periodic(const Duration(seconds: 4), (_) {
+      if (!mounted || !_bannerController.hasClients) return;
+      final dp = context.read<DashboardProvider>();
+      final len = dp.sliders.isNotEmpty ? dp.sliders.length : 3;
+      final next = (_bannerIndex + 1) % len;
+      _bannerController.animateToPage(
+        next,
+        duration: const Duration(milliseconds: 500),
+        curve: Curves.easeOutCubic,
+      );
+    });
   }
 
   Future<void> _trackShipment() async {
@@ -165,16 +191,77 @@ class _TrackPageState extends State<TrackPage> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(18),
-              child: SizedBox(
-                height: 145,
-                width: double.infinity,
-                child: Image.network(
-                  RealImages.trackHero,
-                  fit: BoxFit.cover,
-                ),
-              ),
+            Align(
+              alignment: AlignmentDirectional.centerStart,
+              child: BackButton(color: Color(0xFF1E293B)),
+            ),
+            SizedBox(height: 8),
+            Consumer<DashboardProvider>(
+              builder: (context, dashboard, _) {
+                if (dashboard.isLoading && dashboard.sliders.isEmpty) {
+                  return Container(
+                    height: 150,
+                    decoration: BoxDecoration(
+                      color: Colors.grey[200],
+                      borderRadius: BorderRadius.circular(18),
+                    ),
+                    child: const Center(
+                      child: CircularProgressIndicator(
+                        color: Color(0xFFE71D24),
+                      ),
+                    ),
+                  );
+                }
+
+                List<String> images = [];
+                try {
+                  String? pickUrl(dynamic raw) {
+                    if (raw == null) return null;
+                    if (raw is String) {
+                      final s = raw.trim();
+                      return s.isEmpty ? null : s;
+                    }
+                    if (raw is Map) {
+                      final item = Map<String, dynamic>.from(raw);
+                      final candidates = [
+                        item['image'],
+                        item['image_url'],
+                        item['url'],
+                        item['src'],
+                        item['thumbnail'],
+                      ];
+                      for (final c in candidates) {
+                        final s = c?.toString().trim() ?? '';
+                        if (s.isNotEmpty) return s;
+                      }
+                    }
+                    return null;
+                  }
+
+                  images = dashboard.sliders
+                      .map(pickUrl)
+                      .whereType<String>()
+                      .toList();
+                } catch (e) {
+                  print('Error processing sliders: $e');
+                }
+
+                if (images.isEmpty) {
+                  images = [
+                    RealImages.homeHero,
+                    RealImages.trackHero,
+                    RealImages.shipmentsHero,
+                  ];
+                }
+
+                return _TrackHeroSlider(
+                  controller: _bannerController,
+                  images: images,
+                  index: _bannerIndex,
+                  onPageChanged: (value) =>
+                      setState(() => _bannerIndex = value),
+                );
+              },
             ),
             SizedBox(height: 16),
             Text('تتبع الشحنة'.tr, style: Theme.of(context).textTheme.headlineSmall),
@@ -339,6 +426,65 @@ class _TimelineTile extends StatelessWidget {
               ],
             ),
           ),
+        ),
+      ],
+    );
+  }
+}
+
+class _TrackHeroSlider extends StatelessWidget {
+  const _TrackHeroSlider({
+    required this.controller,
+    required this.images,
+    required this.index,
+    required this.onPageChanged,
+  });
+
+  final PageController controller;
+  final List<String> images;
+  final int index;
+  final ValueChanged<int> onPageChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        SizedBox(
+          height: 150,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(18),
+            child: PageView.builder(
+              controller: controller,
+              onPageChanged: onPageChanged,
+              itemCount: images.length,
+              itemBuilder: (context, i) {
+                return CachedImage(
+                  imageUrl: images[i],
+                  fit: BoxFit.cover,
+                  width: double.infinity,
+                );
+              },
+            ),
+          ),
+        ),
+        SizedBox(height: 10),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: List.generate(images.length, (i) {
+            final active = i == index;
+            return AnimatedContainer(
+              duration: const Duration(milliseconds: 300),
+              margin: const EdgeInsets.symmetric(horizontal: 3),
+              width: active ? 16 : 6,
+              height: 6,
+              decoration: BoxDecoration(
+                color: active
+                    ? const Color(0xFFE71D24)
+                    : const Color(0xFFCBD5E1),
+                borderRadius: BorderRadius.circular(3),
+              ),
+            );
+          }),
         ),
       ],
     );

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:online_ezzy/core/app_title_assets.dart';
 import 'address_details_page.dart';
 import 'us_address_page.dart';
 import 'cn_address_page.dart';
@@ -32,8 +33,7 @@ class AddressPage extends StatelessWidget {
               _buildAddressCard(
                 context,
                 title: 'عنوان الداخل',
-                imageUrl:
-                    'https://images.pexels.com/photos/196667/pexels-photo-196667.jpeg?auto=compress&cs=tinysrgb&w=600', // القدس كمثال للمحاكاة
+                imageAsset: AppTitleAssets.insideAddress,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -48,8 +48,7 @@ class AddressPage extends StatelessWidget {
               _buildAddressCard(
                 context,
                 title: 'عنوان صيني',
-                imageUrl:
-                    'https://images.pexels.com/photos/17233267/pexels-photo-17233267.jpeg?auto=compress&cs=tinysrgb&w=600',
+                imageAsset: AppTitleAssets.chinaAddress,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -63,8 +62,7 @@ class AddressPage extends StatelessWidget {
               _buildAddressCard(
                 context,
                 title: 'عنوان امريكي',
-                imageUrl:
-                    'https://images.pexels.com/photos/466685/pexels-photo-466685.jpeg?auto=compress&cs=tinysrgb&w=600',
+                imageAsset: AppTitleAssets.usAddress,
                 onPressed: () {
                   Navigator.push(
                     context,
@@ -85,7 +83,7 @@ class AddressPage extends StatelessWidget {
   Widget _buildAddressCard(
     BuildContext context, {
     required String title,
-    required String imageUrl,
+    required String imageAsset,
     required VoidCallback onPressed,
   }) {
     return Container(
@@ -107,8 +105,8 @@ class AddressPage extends StatelessWidget {
         children: [
           ClipRRect(
             borderRadius: BorderRadius.circular(12),
-            child: Image.network(
-              imageUrl,
+            child: Image.asset(
+              imageAsset,
               height: 120,
               width: double.infinity,
               fit: BoxFit.cover,

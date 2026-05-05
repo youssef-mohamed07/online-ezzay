@@ -1,6 +1,8 @@
 import 'package:online_ezzy/core/app_translations.dart';
+import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:online_ezzy/providers/auth_provider.dart';
 import 'package:online_ezzy/providers/shipment_provider.dart';
 import 'package:online_ezzy/core/api_service.dart';
@@ -35,6 +37,11 @@ class _ProfilePageState extends State<ProfilePage>
   void initState() {
     super.initState();
     _tabController = TabController(length: 4, vsync: this, initialIndex: 0);
+    _tabController.addListener(() {
+      if (!_tabController.indexIsChanging && _tabController.index == 0) {
+        _loadProfileData();
+      }
+    });
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (!mounted) return;
       _loadProfileData();
@@ -44,6 +51,7 @@ class _ProfilePageState extends State<ProfilePage>
   Future<void> _loadProfileData() async {
     final auth = context.read<AuthProvider>();
     final shipmentProvider = context.read<ShipmentProvider>();
+    final localOrders = await _loadLocalSuccessOrders();
 
     await shipmentProvider.loadShipments();
 
@@ -51,7 +59,9 @@ class _ProfilePageState extends State<ProfilePage>
     if (!auth.isAuthenticated || userId == null) {
       if (!mounted) return;
       setState(() {
-        _customerOrders = [];
+        // Keep locally saved successful orders visible even when user id
+        // cannot be resolved yet from profile payload.
+        _customerOrders = localOrders;
         _ordersError = null;
         _isOrdersLoading = false;
       });
@@ -65,14 +75,16 @@ class _ProfilePageState extends State<ProfilePage>
 
     try {
       final orders = await ApiService.getCustomerOrders(userId);
+      final mergedOrders = _mergeOrders(localOrders, orders);
       if (!mounted) return;
       setState(() {
-        _customerOrders = orders;
+        _customerOrders = mergedOrders;
       });
     } catch (e) {
       if (!mounted) return;
+      final localOrders = await _loadLocalSuccessOrders();
       setState(() {
-        _customerOrders = [];
+        _customerOrders = localOrders;
         _ordersError = 'تعذر تحميل الطلبات';
       });
     } finally {
@@ -81,13 +93,64 @@ class _ProfilePageState extends State<ProfilePage>
     }
   }
 
+  Future<List<Map<String, dynamic>>> _loadLocalSuccessOrders() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString('local_success_orders');
+    if (raw == null || raw.trim().isEmpty) return [];
+    try {
+      final decoded = jsonDecode(raw);
+      if (decoded is! List) return [];
+      return decoded
+          .whereType<Map>()
+          .map((e) => Map<String, dynamic>.from(e))
+          .toList();
+    } catch (_) {
+      return [];
+    }
+  }
+
+  List<Map<String, dynamic>> _mergeOrders(
+    List<Map<String, dynamic>> localOrders,
+    List<Map<String, dynamic>> remoteOrders,
+  ) {
+    final byId = <String, Map<String, dynamic>>{};
+    for (final item in localOrders) {
+      final id = _safeText(item['id']);
+      if (id.isEmpty) continue;
+      byId[id] = item;
+    }
+    for (final item in remoteOrders) {
+      final id = _safeText(item['id']);
+      if (id.isEmpty) continue;
+      // Prefer server data when available.
+      byId[id] = item;
+    }
+    final merged = byId.values.toList();
+    merged.sort((a, b) {
+      final aDate = DateTime.tryParse(a['date_created']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      final bDate = DateTime.tryParse(b['date_created']?.toString() ?? '') ??
+          DateTime.fromMillisecondsSinceEpoch(0);
+      return bDate.compareTo(aDate);
+    });
+    return merged;
+  }
+
   String? _resolveUserId(Map<String, dynamic>? user) {
     if (user == null) return null;
     final rawId =
         user['id'] ??
         user['user_id'] ??
         user['ID'] ??
-        (user['data'] is Map ? user['data']['id'] : null);
+        (user['data'] is Map
+            ? (user['data']['id'] ??
+                ((user['data']['user'] is Map)
+                    ? user['data']['user']['id']
+                    : null) ??
+                ((user['data']['user'] is Map)
+                    ? user['data']['user']['ID']
+                    : null))
+            : null);
     final id = rawId?.toString().trim();
     if (id == null || id.isEmpty || id.toLowerCase() == 'null') {
       return null;
@@ -255,6 +318,9 @@ class _ProfilePageState extends State<ProfilePage>
       _showMainProfile = false;
       _tabController.index = index;
     });
+    if (index == 0) {
+      _loadProfileData();
+    }
   }
 
   @override
@@ -993,10 +1059,12 @@ class _ProfilePageState extends State<ProfilePage>
                   ? _safeText(shipment['number'])
                   : _safeText(shipment['id']);
 
-              final status = _safeText(
-                shipment['current_status'] ??
-                    shipment['status'] ??
-                    shipment['shipment_status'],
+              final status = AppTranslations.preferBoxOverWarehouse(
+                _safeText(
+                  shipment['current_status'] ??
+                      shipment['status'] ??
+                      shipment['shipment_status'],
+                ),
               );
               final delivered = _isDeliveredStatus(status);
               final weight = _safeText(
@@ -1172,12 +1240,12 @@ class _ProfilePageState extends State<ProfilePage>
               children: [
                 Expanded(
                   child: _buildTimelineStep(
-                    'في المستودع'.tr,
+                    'في الصندوق'.tr,
                     isActive:
-                        status == 'في المستودع' ||
+                        status == 'في الصندوق' ||
                         status == 'في الطريق' ||
                         status == 'تم التسليم' ||
-                        status == 'في الصندوق',
+                        delivered,
                     isCompleted:
                         status == 'في الطريق' ||
                         status == 'تم التسليم' ||

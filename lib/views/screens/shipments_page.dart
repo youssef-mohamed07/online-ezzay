@@ -2,10 +2,12 @@ import 'package:online_ezzy/core/app_translations.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:online_ezzy/core/api_service.dart';
+import 'package:online_ezzy/core/image_url_utils.dart';
 import 'package:online_ezzy/providers/shipment_provider.dart';
 import 'package:online_ezzy/views/screens/shipment_details_page.dart';
 import 'package:online_ezzy/views/screens/notifications_page.dart';
 import 'package:online_ezzy/views/screens/track_page.dart';
+import 'package:online_ezzy/views/screens/auth/login_page.dart';
 import 'package:online_ezzy/widgets/cached_image.dart';
 
 class ShipmentsPage extends StatefulWidget {
@@ -23,7 +25,7 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
   final List<String> _filters = [
     'الكل'.tr,
     'تم الطلب'.tr,
-    'في المستودع'.tr,
+    'في الصندوق'.tr,
     'في الطريق'.tr,
     'تم التسليم'.tr,
   ];
@@ -62,7 +64,7 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
         value.contains('في المستودع') ||
         value.contains('في الصندوق') ||
         value.contains('box')) {
-      return 'في المستودع'.tr;
+      return 'في الصندوق'.tr;
     }
     if (value.contains('request') || value.contains('ordered') || value.contains('تم الطلب')) {
       return 'تم الطلب'.tr;
@@ -87,7 +89,9 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
     final value = status.toLowerCase();
     if (value.contains('تسليم')) return const Color(0xFF10B981);
     if (value.contains('طريق')) return const Color(0xFFF59E0B);
-    if (value.contains('مستودع')) return const Color(0xFF3B82F6);
+    if (value.contains('مستودع') || value.contains('صندوق')) {
+      return const Color(0xFF3B82F6);
+    }
     return const Color(0xFFE71D24);
   }
 
@@ -269,72 +273,134 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
                 Expanded(
                   child: shipmentProvider.isLoading && allShipments.isEmpty
                       ? const Center(child: CircularProgressIndicator())
-                      : RefreshIndicator(
-                          onRefresh: shipmentProvider.loadShipments,
-                          child: filtered.isEmpty
-                              ? ListView(
+                      : shipmentProvider.requiresAuth
+                          ? Center(
+                              child: Padding(
+                                padding: const EdgeInsets.all(24.0),
+                                child: Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
                                   children: [
-                                    const SizedBox(height: 80),
-                                    Center(
-                                      child: Column(
-                                        children: [
-                                          Text(
-                                            'لا توجد شحنات حاليا'.tr,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.bold,
-                                              color: Color(0xFF64748B),
-                                            ),
+                                    Icon(
+                                      Icons.lock_outline,
+                                      size: 64,
+                                      color: Color(0xFF94A3B8),
+                                    ),
+                                    SizedBox(height: 16),
+                                    Text(
+                                      'يجب تسجيل الدخول'.tr,
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.bold,
+                                        color: Color(0xFF334155),
+                                      ),
+                                    ),
+                                    SizedBox(height: 8),
+                                    Text(
+                                      'قم بتسجيل الدخول لعرض شحناتك'.tr,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        color: Color(0xFF64748B),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                    SizedBox(height: 24),
+                                    ElevatedButton(
+                                      onPressed: () {
+                                        // Navigate to login page
+                                        Navigator.push(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (context) => const LoginPage(),
                                           ),
-                                          const SizedBox(height: 6),
-                                          Text(
-                                            'ابدأ بطلب توصيل جديد'.tr,
-                                            style: const TextStyle(
-                                              fontSize: 13,
-                                              color: Color(0xFF94A3B8),
-                                            ),
-                                          ),
-                                        ],
+                                        );
+                                      },
+                                      style: ElevatedButton.styleFrom(
+                                        backgroundColor: Color(0xFFE71D24),
+                                        foregroundColor: Colors.white,
+                                        padding: EdgeInsets.symmetric(
+                                          horizontal: 32,
+                                          vertical: 12,
+                                        ),
+                                        shape: RoundedRectangleBorder(
+                                          borderRadius: BorderRadius.circular(8),
+                                        ),
+                                      ),
+                                      child: Text(
+                                        'تسجيل الدخول'.tr,
+                                        style: TextStyle(
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
                                       ),
                                     ),
                                   ],
-                                )
-                              : ListView.separated(
-                                  padding: const EdgeInsets.all(16),
-                                  itemCount: filtered.length,
-                                  separatorBuilder: (_, __) => const SizedBox(height: 16),
-                                  itemBuilder: (context, index) {
-                                    final shipment = filtered[index];
-                                    final tracking =
-                                        (shipment['tracking_number'] ??
-                                                shipment['number'] ??
-                                                shipment['id'] ??
-                                                '')
-                                            .toString();
-                                    final status = _normalizeStatus(
-                                      _shipmentStatusRaw(shipment),
-                                    );
-                                    final statusColor = _statusColor(status);
-                                    final step = _statusStep(status);
-                                    final imageUrl =
-                                        (shipment['image'] ?? shipment['image_url'] ?? '').toString();
-                                    final weight =
-                                        (shipment['weight'] ?? shipment['total_weight'] ?? '0').toString();
-                                    final date = _shipmentDateRaw(shipment);
-
-                                    return _buildShipmentCard(
-                                      trackingNumber: tracking,
-                                      status: status,
-                                      statusColor: statusColor,
-                                      imageUrl: imageUrl,
-                                      step: step,
-                                      weight: weight,
-                                      date: date,
-                                      buttonDisabled: status == 'تم التسليم'.tr,
-                                    );
-                                  },
                                 ),
-                        ),
+                              ),
+                            )
+                          : RefreshIndicator(
+                              onRefresh: shipmentProvider.loadShipments,
+                              child: filtered.isEmpty
+                                  ? ListView(
+                                      children: [
+                                        const SizedBox(height: 80),
+                                        Center(
+                                          child: Column(
+                                            children: [
+                                              Text(
+                                                'لا توجد شحنات حاليا'.tr,
+                                                style: const TextStyle(
+                                                  fontSize: 16,
+                                                  fontWeight: FontWeight.bold,
+                                                  color: Color(0xFF64748B),
+                                                ),
+                                              ),
+                                              const SizedBox(height: 6),
+                                              Text(
+                                                'ابدأ بطلب توصيل جديد'.tr,
+                                                style: const TextStyle(
+                                                  fontSize: 13,
+                                                  color: Color(0xFF94A3B8),
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        ),
+                                      ],
+                                    )
+                                  : ListView.separated(
+                                      padding: const EdgeInsets.all(16),
+                                      itemCount: filtered.length,
+                                      separatorBuilder: (_, _) => const SizedBox(height: 16),
+                                      itemBuilder: (context, index) {
+                                        final shipment = filtered[index];
+                                        final tracking =
+                                            (shipment['tracking_number'] ??
+                                                    shipment['number'] ??
+                                                    shipment['id'] ??
+                                                    '')
+                                                .toString();
+                                        final status = _normalizeStatus(
+                                          _shipmentStatusRaw(shipment),
+                                        );
+                                        final statusColor = _statusColor(status);
+                                        final step = _statusStep(status);
+                                        final weight =
+                                            (shipment['weight'] ?? shipment['total_weight'] ?? '0').toString();
+                                        final date = _shipmentDateRaw(shipment);
+
+                                        return _ShipmentCardWithImage(
+                                          trackingNumber: tracking,
+                                          status: status,
+                                          statusColor: statusColor,
+                                          step: step,
+                                          weight: weight,
+                                          date: date,
+                                          buttonDisabled: status == 'تم التسليم'.tr,
+                                          shipment: shipment,
+                                        );
+                                      },
+                                    ),
+                            ),
                 ),
               ],
             );
@@ -343,19 +409,77 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
       ),
     );
   }
+}
 
-  Widget _buildShipmentCard({
-    required String trackingNumber,
-    required String status,
-    required Color statusColor,
-    required String imageUrl,
-    required int step,
-    required String weight,
-    required String date,
-    required bool buttonDisabled,
-    bool isIconPlay = false,
-    bool isIconCheck = false,
-  }) {
+class _ShipmentCardWithImage extends StatelessWidget {
+  final String trackingNumber;
+  final String status;
+  final Color statusColor;
+  final int step;
+  final String weight;
+  final String date;
+  final bool buttonDisabled;
+  final Map<String, dynamic> shipment;
+
+  const _ShipmentCardWithImage({
+    required this.trackingNumber,
+    required this.status,
+    required this.statusColor,
+    required this.step,
+    required this.weight,
+    required this.date,
+    required this.buttonDisabled,
+    required this.shipment,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return FutureBuilder<String>(
+      future: context.read<ShipmentProvider>().loadShipmentImage(
+        trackingNumber,
+        shipment: shipment,
+      ),
+      builder: (context, snapshot) {
+        final imageUrl = snapshot.data ?? '';
+        
+        return _ShipmentCard(
+          trackingNumber: trackingNumber,
+          status: status,
+          statusColor: statusColor,
+          imageUrl: imageUrl,
+          step: step,
+          weight: weight,
+          date: date,
+          buttonDisabled: buttonDisabled,
+        );
+      },
+    );
+  }
+}
+
+class _ShipmentCard extends StatelessWidget {
+  final String trackingNumber;
+  final String status;
+  final Color statusColor;
+  final String imageUrl;
+  final int step;
+  final String weight;
+  final String date;
+  final bool buttonDisabled;
+
+  const _ShipmentCard({
+    required this.trackingNumber,
+    required this.status,
+    required this.statusColor,
+    required this.imageUrl,
+    required this.step,
+    required this.weight,
+    required this.date,
+    required this.buttonDisabled,
+  });
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
       decoration: BoxDecoration(
         color: Colors.white,
@@ -367,6 +491,16 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: CachedImage(
+                  imageUrl: imageUrl,
+                  width: 80,
+                  height: 80,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              SizedBox(width: 16),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -390,45 +524,16 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
                         border: Border.all(color: statusColor.withValues(alpha: 0.5)),
                         borderRadius: BorderRadius.circular(20),
                       ),
-                      child: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          if (isIconCheck) ...[
-                            Icon(
-                              Icons.check_circle,
-                              color: statusColor,
-                              size: 14,
-                            ),
-                            SizedBox(width: 4),
-                          ] else if (isIconPlay) ...[
-                            Icon(
-                              Icons.play_arrow,
-                              color: statusColor,
-                              size: 14,
-                            ),
-                            SizedBox(width: 4),
-                          ],
-                          Text(
-                            status,
-                            style: TextStyle(
-                              color: statusColor,
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
-                          ),
-                        ],
+                      child: Text(
+                        status,
+                        style: TextStyle(
+                          color: statusColor,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
                     ),
                   ],
-                ),
-              ),
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedImage(
-                  imageUrl: imageUrl,
-                  width: 70,
-                  height: 70,
-                  fit: BoxFit.cover,
                 ),
               ),
             ],
@@ -485,6 +590,7 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
                         status: status,
                         weight: weight,
                         date: date,
+                        imageUrl: imageUrl,
                       ),
                     ),
                   );
@@ -545,13 +651,13 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
               children: [
                 _buildTimelineNode(
                   title: 'في الصندوق'.tr,
-                  state: 1, // 1 = checked
+                  state: 1,
                   activeColor: activeRed,
                   inactiveColor: inactiveGrey,
                 ),
                 _buildTimelineNode(
                   title: 'في الطريق'.tr,
-                  state: step >= 2 ? 2 : 0, // 2 = active dot, 0 = inactive
+                  state: step >= 2 ? 2 : 0,
                   activeColor: activeRed,
                   inactiveColor: inactiveGrey,
                 ),
@@ -571,7 +677,7 @@ class _ShipmentsPageState extends State<ShipmentsPage> {
 
   Widget _buildTimelineNode({
     required String title,
-    required int state, // 0 = inactive, 1 = checked, 2 = active dot
+    required int state,
     required Color activeColor,
     required Color inactiveColor,
   }) {

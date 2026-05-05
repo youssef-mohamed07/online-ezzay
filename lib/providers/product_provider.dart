@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+
 import '../core/api_service.dart';
 
 class ProductProvider extends ChangeNotifier {
@@ -27,13 +29,16 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _categories = await ApiService.getCategories();
+      _categories = await ApiService.getCategories().timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => <dynamic>[],
+      );
     } catch (e) {
       print('Load categories error: $e');
+    } finally {
+      _isCategoriesLoading = false;
+      notifyListeners();
     }
-
-    _isCategoriesLoading = false;
-    notifyListeners();
   }
 
   Future<void> loadProducts() async {
@@ -41,13 +46,16 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _products = await ApiService.getProducts();
+      _products = await ApiService.getProducts().timeout(
+        const Duration(seconds: 8),
+        onTimeout: () => <dynamic>[],
+      );
     } catch (e) {
       print('Load products error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> loadProductsByCategory(int categoryId) async {
@@ -55,13 +63,14 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _deliveryProducts = await ApiService.getProducts(categoryId: categoryId);
+      _deliveryProducts = await ApiService.getProducts(categoryId: categoryId)
+          .timeout(const Duration(seconds: 8), onTimeout: () => <dynamic>[]);
     } catch (e) {
       print('Load category products error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> loadProductsByCategories(List<int> categoryIds) async {
@@ -69,13 +78,14 @@ class ProductProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      _deliveryProducts = await ApiService.getProducts(categoryIds: categoryIds);
+      _deliveryProducts = await ApiService.getProducts(categoryIds: categoryIds)
+          .timeout(const Duration(seconds: 8), onTimeout: () => <dynamic>[]);
     } catch (e) {
       print('Load categories products error: $e');
+    } finally {
+      _isLoading = false;
+      notifyListeners();
     }
-
-    _isLoading = false;
-    notifyListeners();
   }
 
   Future<void> loadDeliveryProducts({

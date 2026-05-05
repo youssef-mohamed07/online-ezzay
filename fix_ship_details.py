@@ -3,18 +3,46 @@ import re
 with open('lib/views/screens/shipment_details_page.dart', 'r') as f:
     content = f.read()
 
-# Fix properties
-content = content.replace("final String widget.trackingNumber;", "final String trackingNumber;")
-content = content.replace("final String widget.status;", "final String status;")
-content = content.replace("final String widget.weight;", "final String weight;")
-content = content.replace("final String widget.date;", "final String date;")
+old_logic = """String imageUrl = (shipment['image'] ?? shipment['image_url'] ?? '').toString();
+    if (imageUrl.isEmpty &&
+        shipment['line_items'] is List &&
+        (shipment['line_items'] as List).isNotEmpty) {
+      final firstItem = (shipment['line_items'] as List)[0];
+      if (firstItem is Map && firstItem['image'] is Map && firstItem['image']['src'] != null) {
+        imageUrl = firstItem['image']['src'].toString();
+      } else if (firstItem is Map && firstItem['image'] is String) {
+        imageUrl = firstItem['image'].toString();
+      } else if (firstItem is Map && firstItem['image_url'] != null) {
+        imageUrl = firstItem['image_url'].toString();
+      }
+    }"""
 
-# Fix constructor
-content = content.replace("required this.widget.trackingNumber,", "required this.trackingNumber,")
-content = content.replace("required this.widget.status,", "required this.status,")
-content = content.replace("required this.widget.weight,", "required this.weight,")
-content = content.replace("required this.widget.date,", "required this.date,")
+new_logic = """String imageUrl = (shipment['image'] ?? shipment['image_url'] ?? '').toString();
+    if (imageUrl.isEmpty &&
+        shipment['line_items'] is List &&
+        (shipment['line_items'] as List).isNotEmpty) {
+      final firstItem = (shipment['line_items'] as List)[0];
+      if (firstItem is Map) {
+        if (firstItem['image'] is Map) {
+          imageUrl = (firstItem['image']['src'] ?? firstItem['image']['url'] ?? firstItem['image']['image_url'] ?? '').toString();
+        } else if (firstItem['image'] is String && firstItem['image'].toString().isNotEmpty) {
+          imageUrl = firstItem['image'].toString();
+        } else if (firstItem['image_url'] != null) {
+          imageUrl = firstItem['image_url'].toString();
+        } else if (firstItem['product_image'] != null) {
+          imageUrl = firstItem['product_image'].toString();
+        } else if (firstItem['meta_data'] is List) {
+          for(var meta in firstItem['meta_data']) {
+            if (meta is Map && meta['key'] == 'image') {
+              imageUrl = meta['value'].toString();
+              break;
+            }
+          }
+        }
+      }
+    }"""
+
+content = content.replace(old_logic, new_logic)
 
 with open('lib/views/screens/shipment_details_page.dart', 'w') as f:
     f.write(content)
-

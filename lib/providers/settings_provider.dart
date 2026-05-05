@@ -10,6 +10,7 @@ class SettingsProvider extends ChangeNotifier {
 
   String _currency = 'USD';
   String get currency => _currency;
+  String get currencyCode => _currency;
 
   String _currencySymbol = '\$';
   String get currencySymbol => _currencySymbol;
